@@ -16,6 +16,23 @@
 <main id="view"><p class="boot">Loading…</p></main>
 <div id="toasts" aria-live="polite"></div>
 <noscript>JavaScript を有効にしてください。</noscript>
+<script>
+  // app.js が読み込めないときに原因を画面に出す
+  window.addEventListener('error', function (e) {
+    var v = document.getElementById('view');
+    if (v && v.querySelector('.boot')) {
+      v.innerHTML = '<div style="background:#fff;border-left:4px solid #B3261E;padding:1rem;border-radius:6px">'
+        + '<strong>読み込みエラー / Load error</strong><p style="font-size:.9rem;word-break:break-all">'
+        + String((e.message || '') + ' ' + ((e.target && (e.target.src || e.target.href)) || e.filename || '')).replace(/</g, '&lt;')
+        + '</p><p style="font-size:.9rem">js フォルダの配置とファイル名（小文字）を確認してください。</p></div>';
+    }
+  }, true);
+  setTimeout(function () {
+    var v = document.getElementById('view');
+    if (v && v.querySelector('.boot')) v.querySelector('.boot').textContent =
+      'Loading が続く場合：js/app.js が読み込めていません。F12 のコンソールでエラーを確認してください。';
+  }, 6000);
+</script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

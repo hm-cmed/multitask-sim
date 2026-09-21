@@ -1,9 +1,9 @@
-import { firebaseConfig, STORAGE_ENABLED } from './firebase-config.js';
 import { T, LANGS } from './i18n.js';
 import { PROFESSIONS, LEVELS, PRIORITY, CHECKS, TIPS, BUILTIN_SCENARIOS } from './data.js';
 import { Game, LEVEL_MULT } from './engine.js';
 
 const FB_VER = '10.12.2';
+let firebaseConfig = null, STORAGE_ENABLED = false, CONFIG_ERROR = '';
 const LI = { ja: 0, en: 1, ko: 2, zh: 3 };
 const L4 = ['ja', 'en', 'ko', 'zh'];
 const AXES = ['priority', 'time', 'safety', 'resume', 'comm'];
@@ -80,6 +80,15 @@ function beep(f = 880, d = 0.12) {
 
 /* ---------- Firebase ---------- */
 async function initFirebase() {
+  try {
+    const m = await import('./firebase-config.js');
+    firebaseConfig = m.firebaseConfig; STORAGE_ENABLED = !!m.STORAGE_ENABLED;
+    if (!firebaseConfig) CONFIG_ERROR = 'firebase-config.js: export const firebaseConfig = { ... } が見つかりません';
+  } catch (e) {
+    CONFIG_ERROR = 'firebase-config.js: ' + (e?.message || e);
+    console.error(e);
+    return;
+  }
   const c = firebaseConfig || {};
   if (!c.apiKey || /YOUR_/.test(c.apiKey)) return;
   try {
@@ -93,7 +102,7 @@ async function initFirebase() {
       const ST = await import(base + 'firebase-storage.js');
       S.fb.ST = ST; S.fb.storage = ST.getStorage(app);
     }
-  } catch (e) { console.error(e); S.fb = null; }
+  } catch (e) { console.error(e); S.fb = null; CONFIG_ERROR = 'Firebase: ' + (e?.message || e); }
 }
 
 function watchAuth() {
@@ -235,6 +244,7 @@ function renderHome() {
     <div class="act"><h2>${t('soloPlay')}</h2><p>${t('soloDesc')}</p><button class="btn" data-act="soloSetup">${t('soloPlay')}</button></div>
     <div class="act"><h2>${t('multiTitle')}</h2><p>${t('multiDesc')}</p>${multi}</div>
   </section>
+  ${CONFIG_ERROR ? `<section class="card cfgerr"><strong>Firebase設定エラー</strong><p class="small">${esc(CONFIG_ERROR)}</p><p class="small">READMEの「1. Firebase プロジェクトを作る」を確認してください。ひとりで練習はこのまま使えます。</p></section>` : ''}
   <footer class="foot"><p>${t('evidenceNote')}</p><a href="#admin" data-act="admin">${t('admin')}</a></footer>`);
 }
 function saveProfile() {
