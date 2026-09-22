@@ -8,31 +8,1821 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+KR:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+
+<!-- ================= ここから設定 =================
+  Firebase コンソール →「プロジェクトの設定」→「マイアプリ」に表示される値のうち、
+  apiKey〜appId の6項目だけを下の " " の中に入れてください。
+  import で始まる行や initializeApp の行は貼らないでください。
+  YOUR_API_KEY のままなら「ひとりで練習」だけのモードで動きます。
+-->
+<script>
+  window.FIREBASE_CONFIG = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.firebasestorage.app",
+    messagingSenderId: "",
+    appId: ""
+  };
+  // 動画ファイルの直接アップロード（Blazeプランで Storage を有効にした場合のみ true）
+  window.STORAGE_ENABLED = false;
+</script>
+<!-- ================= ここまで設定 ================= -->
+
+<script>
+  if (!window.FIREBASE_CONFIG) window.FIREBASE_CONFIG_ERROR = '設定ブロックの書式が正しくありません（" " や , の抜けを確認してください）';
+  window.addEventListener('error', function (e) {
+    var v = document.getElementById('view');
+    if (v && v.querySelector('.boot')) {
+      v.innerHTML = '<div style="background:#fff;border-left:4px solid #B3261E;padding:1rem;border-radius:6px"><strong>読み込みエラー / Load error</strong><p style="font-size:.9rem;word-break:break-all">'
+        + String((e.message || '') + ' ' + (e.filename || '') + ':' + (e.lineno || '')).replace(/</g, '&lt;') + '</p></div>';
+    }
+  }, true);
+</script>
+<style>
+:root {
+  --wall: #E4ECEB;      /* 病棟の壁 */
+  --panel: #FAFCFC;
+  --ink: #14283A;       /* 夜のナースステーション */
+  --ink2: #4B5F70;
+  --rule: #C2D0CF;
+  --act: #0B6477;
+  --lamp: #E9A800;      /* 呼び出しランプ */
+  --p1: #B3261E; --p2: #B86E00; --p3: #2E7552; --p4: #687888;
+  --good: #2E7552; --bad: #B3261E;
+  --tA: #1F5FA8; --tB: #8A3B8F;
+  --r: 6px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--wall); color: var(--ink);
+  font-family: "BIZ UDPGothic", "Noto Sans KR", "Noto Sans SC", system-ui, sans-serif;
+  font-size: 16px; line-height: 1.65;
+}
+:lang(ko) body, body:lang(ko) { font-family: "Noto Sans KR", "BIZ UDPGothic", system-ui, sans-serif; }
+:lang(zh) body, body:lang(zh) { font-family: "Noto Sans SC", "BIZ UDPGothic", system-ui, sans-serif; }
+h1, h2, h3 { line-height: 1.25; margin: 0 0 .6rem; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 1.05rem; }
+p { margin: .3rem 0 .8rem; }
+a { color: var(--act); }
+code { background: #fff; padding: .1rem .35rem; border-radius: 3px; word-break: break-all; }
+:focus-visible { outline: 3px solid var(--lamp); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.muted { color: var(--ink2); }
+.small { font-size: .82rem; }
+.boot { color: var(--ink2); }
+
+/* ヘッダー */
+#hdr { display: flex; justify-content: space-between; align-items: center; gap: .8rem; flex-wrap: wrap; padding: .55rem 1.2rem; background: var(--ink); color: #fff; }
+.brand { color: #fff; text-decoration: none; font-weight: 700; }
+.hdr-r { display: flex; align-items: center; gap: .6rem; }
+.hdr-r select { width: auto; min-height: 34px; padding: .2rem .5rem; }
+.who { font-size: .85rem; opacity: .85; max-width: 12em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#hdr .btn { background: #fff; color: var(--ink); }
+#hdr .btn.ghost { background: transparent; color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.8); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 1.6rem 1.2rem 5rem; }
+
+/* 部品 */
+input, select, textarea {
+  font: inherit; color: var(--ink); background: #fff; width: 100%;
+  border: 1px solid var(--rule); border-radius: 4px; padding: .45rem .6rem; min-height: 42px;
+}
+textarea { min-height: auto; }
+input[type=radio], input[type=checkbox] { width: auto; min-height: 0; accent-color: var(--act); }
+label { display: grid; gap: .25rem; font-size: .9rem; color: var(--ink2); }
+label.inline { display: flex; align-items: center; gap: .45rem; color: var(--ink); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  font: inherit; font-weight: 700; cursor: pointer; border: 0; border-radius: 4px;
+  background: var(--act); color: #fff; padding: .55rem 1.1rem; min-height: 44px; text-decoration: none;
+}
+.btn.ghost { background: transparent; color: var(--act); box-shadow: inset 0 0 0 1.5px var(--act); }
+.btn.sm { min-height: 36px; padding: .3rem .8rem; font-size: .9rem; }
+.btn.big { font-size: 1.1rem; padding: .75rem 1.8rem; }
+.btn.danger { background: var(--bad); }
+.btn:disabled { opacity: .45; cursor: default; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: var(--r); padding: 1.2rem 1.4rem; margin: 1.2rem 0; }
+.narrow { max-width: 480px; margin-inline: auto; }
+.w-md { max-width: 480px; }
+.row { display: flex; gap: .8rem; flex-wrap: wrap; align-items: center; margin-top: 1rem; }
+.stack { display: grid; gap: .8rem; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .8rem; }
+.seg { border: 0; padding: 0; margin: .6rem 0; display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; }
+.seg legend { font-size: .9rem; color: var(--ink2); margin-bottom: .3rem; padding: 0; }
+.seg label { display: flex; align-items: center; gap: .4rem; color: var(--ink); font-size: 1rem; }
+.tag { display: inline-block; font-size: .75rem; line-height: 1.5; padding: 0 .5rem; border-radius: 3px; color: #fff; background: var(--p4); }
+.tag.p1 { background: var(--p1); } .tag.p2 { background: var(--p2); } .tag.p3 { background: var(--p3); } .tag.p4 { background: var(--p4); }
+.tb { font-size: .75rem; padding: 0 .45rem; border-radius: 3px; color: #fff; font-weight: 700; }
+.tb.tA { background: var(--tA); } .tb.tB { background: var(--tB); }
+.video { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 4px; overflow: hidden; margin: .6rem 0; max-width: 720px; }
+.video iframe, .video video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.sep { margin-top: 1.4rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+
+/* ホーム：呼び出しランプが一度だけ順に点灯する */
+.hero h1 { font-size: clamp(2.1rem, 6.5vw, 3.6rem); letter-spacing: -.01em; margin-top: .4rem; }
+.lead { font-size: 1.15rem; color: var(--ink2); max-width: 34em; }
+.panel-demo { margin: 1.6rem 0 .4rem; background: var(--ink); border-radius: var(--r); padding: 1rem 1.2rem; display: grid; gap: .65rem; max-width: 560px; }
+.demo-call { display: flex; align-items: center; gap: .8rem; color: #E6EEF2; opacity: .25; animation: lampOn .45s ease forwards; animation-delay: calc(.4s + var(--i) * .75s); }
+.demo-call .lamp { box-shadow: 0 0 0 4px rgba(255,255,255,.08), 0 0 14px currentColor; }
+@keyframes lampOn { to { opacity: 1; } }
+.lamp { width: 14px; height: 14px; border-radius: 50%; background: var(--lamp); flex: none; }
+.lamp.p1 { background: var(--p1); color: var(--p1); } .lamp.p2 { background: var(--p2); color: var(--p2); }
+.lamp.p3 { background: var(--p3); color: var(--p3); } .lamp.p4 { background: var(--p4); color: var(--p4); }
+.actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.2rem; }
+.act { background: var(--panel); border-top: 4px solid var(--act); border-radius: 0 0 var(--r) var(--r); padding: 1.2rem 1.4rem; }
+.joinrow { display: flex; gap: .5rem; margin-top: .8rem; }
+.joinrow input { text-transform: uppercase; letter-spacing: .15em; max-width: 12em; }
+.foot { margin-top: 2.5rem; font-size: .85rem; color: var(--ink2); display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.foot p { max-width: 46em; }
+
+/* ロビー */
+.lobby { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 1.6rem; }
+.code-box { background: var(--panel); border: 1px solid var(--rule); border-radius: var(--r); padding: 1rem; align-self: start; text-align: center; }
+.code { font-size: 2.3rem; font-weight: 700; letter-spacing: .14em; margin: 0; font-variant-numeric: tabular-nums; }
+#qr { display: inline-block; background: #fff; padding: 8px; margin: .6rem 0; }
+#qr img, #qr canvas { display: block; }
+.plist { list-style: none; padding: 0; margin: 0 0 1rem; }
+.plist li { display: flex; gap: .4rem 1rem; flex-wrap: wrap; align-items: center; padding: .45rem 0; border-bottom: 1px solid var(--rule); }
+.brief { background: var(--panel); border-left: 4px solid var(--lamp); padding: .8rem 1rem; margin: .8rem 0; border-radius: 0 var(--r) var(--r) 0; }
+@media (max-width: 720px) { .lobby { grid-template-columns: 1fr; } }
+
+/* ゲーム */
+.gbar { display: flex; flex-wrap: wrap; gap: .8rem 2rem; align-items: flex-end; background: var(--ink); color: #fff; padding: .8rem 1.2rem; border-radius: var(--r); }
+.gtitle { flex: 1 1 260px; display: grid; }
+.meta { display: flex; flex-wrap: wrap; gap: .3rem .9rem; font-size: .82rem; opacity: .8; }
+.gstat { display: grid; justify-items: end; }
+.num { font-variant-numeric: tabular-nums; font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+.num-s { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.gtools { display: flex; align-items: center; gap: .8rem; }
+.snd { display: flex; align-items: center; gap: .3rem; color: #fff; }
+.btn.light { color: #fff; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.7); }
+.hint { background: #FFF1C2; padding: .45rem .8rem; border-radius: 4px; margin: .7rem 0 0; font-size: .9rem; }
+.ggrid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 1.2rem; margin-top: 1rem; }
+.calls { background: #1B3346; border-radius: var(--r); padding: 1rem; min-height: 340px; }
+.calls h2 { color: #DCE6EA; }
+.call { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .8rem; align-items: center; background: var(--panel); border-radius: 4px; padding: .7rem .8rem; margin-bottom: .6rem; }
+.call .lamp { align-self: start; margin-top: .4rem; }
+.call.new .lamp { animation: blink .6s steps(2, start) infinite; }
+@keyframes blink { to { visibility: hidden; } }
+.ct { margin: 0; font-weight: 700; }
+.dl { height: 5px; background: #DCE5E4; border-radius: 3px; margin-top: .45rem; overflow: hidden; }
+.dl i { display: block; height: 100%; width: 100%; background: var(--act); }
+.dl i.low { background: var(--p1); }
+.ca { display: flex; flex-direction: column; gap: .4rem; }
+.empty { color: #9FB3BD; margin: .4rem 0; }
+.empty.dark { color: var(--ink2); }
+.side h2 { font-size: .95rem; color: var(--ink2); margin: 1rem 0 .4rem; }
+.side h2:first-child { margin-top: 0; }
+.work { background: var(--panel); border: 2px solid var(--act); border-radius: var(--r); padding: .8rem; }
+.prog { height: 10px; background: #DCE5E4; border-radius: 5px; overflow: hidden; margin: .55rem 0 .7rem; }
+.prog i { display: block; height: 100%; width: 0; background: var(--act); }
+.pz { background: var(--panel); border-left: 4px solid var(--lamp); border-radius: 0 4px 4px 0; padding: .55rem .8rem; margin-bottom: .5rem; display: grid; gap: .3rem; justify-items: start; }
+.pz p { margin: 0; }
+.ok { color: var(--good); font-weight: 700; } .warn { color: var(--p2); font-weight: 700; }
+.staff { display: inline-block; padding: .15rem .7rem; border-radius: 999px; background: #D3EADF; color: var(--good); font-size: .85rem; margin: 0 .4rem .3rem 0; }
+.staff.busy { background: #E3E6E8; color: #6B7680; }
+.rank { list-style: none; padding: 0; margin: 0; counter-reset: r; }
+.rank li { display: flex; gap: .5rem; align-items: center; padding: .35rem .3rem; border-bottom: 1px solid var(--rule); counter-increment: r; }
+.rank li::before { content: counter(r); min-width: 1.4em; font-weight: 700; color: var(--ink2); }
+.rank li.me { background: #FFF1C2; }
+.rank .rn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank .rs { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.teams { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: .8rem; }
+.team { background: var(--panel); border: 1px solid var(--rule); border-top: 4px solid; border-radius: 0 0 var(--r) var(--r); padding: .5rem .7rem; display: grid; }
+.team.tA { border-top-color: var(--tA); } .team.tB { border-top-color: var(--tB); }
+.tavg { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+@media (max-width: 780px) { .ggrid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) {
+  .call { grid-template-columns: auto minmax(0, 1fr); }
+  .ca { grid-column: 1 / -1; flex-direction: row; }
+  .ca .btn { flex: 1; }
+}
+
+/* 安全確認・カウントダウン・通知 */
+.modal { position: fixed; inset: 0; background: rgba(20, 40, 58, .6); display: grid; place-items: center; padding: 1rem; z-index: 50; }
+.mbox { background: var(--panel); border-radius: var(--r); padding: 1.4rem; width: min(100%, 580px); max-height: 90vh; overflow: auto; }
+.q { font-weight: 700; font-size: 1.05rem; }
+.opt { display: block; width: 100%; text-align: left; margin: .5rem 0; padding: .8rem 1rem; min-height: 48px; font: inherit; color: var(--ink); background: #fff; border: 1.5px solid var(--rule); border-radius: 4px; cursor: pointer; }
+.opt:hover { border-color: var(--act); }
+.count { position: fixed; inset: 0; display: grid; place-items: center; font-size: 8rem; font-weight: 700; color: #fff; background: rgba(20, 40, 58, .82); z-index: 60; font-variant-numeric: tabular-nums; }
+#toasts { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); display: grid; gap: .4rem; z-index: 70; width: min(92vw, 440px); pointer-events: none; }
+.toast { background: var(--ink); color: #fff; padding: .55rem 1rem; border-radius: 4px; font-size: .95rem; }
+.toast.bad { background: var(--bad); } .toast.good { background: var(--good); }
+
+/* 結果 */
+.res-head { text-align: center; margin-bottom: .5rem; }
+.big-score { font-size: clamp(3.6rem, 13vw, 6.4rem); font-weight: 700; line-height: 1; margin: .2rem 0; font-variant-numeric: tabular-nums; }
+.res-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
+.res-grid > .card { margin-top: 1.2rem; }
+@media (max-width: 820px) { .res-grid { grid-template-columns: 1fr; } }
+.ax { display: grid; grid-template-columns: 9em minmax(0, 1fr) 6.5em; gap: .8rem; align-items: center; padding: .3rem 0; }
+.axbar { height: 9px; background: #DCE5E4; border-radius: 5px; overflow: hidden; }
+.axbar i { display: block; height: 100%; background: var(--act); }
+.axbar i.neg { background: var(--p1); }
+.fb { padding-left: 1.2rem; }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+th, td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { color: var(--ink2); font-weight: 700; white-space: nowrap; }
+.oc-missed, .oc-incomplete { color: var(--bad); font-weight: 700; }
+.oc-done, .oc-delegated { color: var(--good); }
+
+/* 管理画面 */
+.tabs { display: flex; gap: .2rem; flex-wrap: wrap; border-bottom: 2px solid var(--ink); }
+.tab { background: none; border: 0; padding: .6rem 1rem; font: inherit; cursor: pointer; color: var(--ink2); border-radius: 4px 4px 0 0; }
+.tab.on { background: var(--ink); color: #fff; }
+.split { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 1.4rem; margin-top: 1rem; }
+@media (max-width: 780px) { .split { grid-template-columns: 1fr; } }
+.slist ul { list-style: none; padding: 0; margin: .8rem 0; max-height: 72vh; overflow: auto; }
+.linkish { display: grid; width: 100%; text-align: left; background: none; border: 0; border-left: 3px solid transparent; padding: .4rem .6rem; font: inherit; color: var(--ink); cursor: pointer; }
+.linkish.on { border-left-color: var(--act); background: var(--panel); }
+.mono { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: .82rem; line-height: 1.5; }
+fieldset.lang { border: 1px solid var(--rule); border-radius: 4px; padding: .6rem .8rem; margin: 0; display: grid; gap: .5rem; }
+.help summary { cursor: pointer; color: var(--act); }
+.vrow { background: var(--panel); border: 1px solid var(--rule); border-radius: var(--r); padding: .8rem 1rem; margin: .6rem 0; }
+.vf { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin-top: .4rem; }
+.vf input[type=url] { flex: 1 1 280px; width: auto; }
+.file { position: relative; overflow: hidden; }
+.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.data td, .data th { font-size: .82rem; }
+.bad { color: var(--bad); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .demo-call { opacity: 1; }
+}
+.cfgerr { border-left: 4px solid var(--bad); }
+
+</style>
 </head>
 <body>
 <header id="hdr"></header>
 <main id="view"><p class="boot">Loading…</p></main>
 <div id="toasts" aria-live="polite"></div>
 <noscript>JavaScript を有効にしてください。</noscript>
-<script>
-  // app.js が読み込めないときに原因を画面に出す
-  window.addEventListener('error', function (e) {
-    var v = document.getElementById('view');
-    if (v && v.querySelector('.boot')) {
-      v.innerHTML = '<div style="background:#fff;border-left:4px solid #B3261E;padding:1rem;border-radius:6px">'
-        + '<strong>読み込みエラー / Load error</strong><p style="font-size:.9rem;word-break:break-all">'
-        + String((e.message || '') + ' ' + ((e.target && (e.target.src || e.target.href)) || e.filename || '')).replace(/</g, '&lt;')
-        + '</p><p style="font-size:.9rem">js フォルダの配置とファイル名（小文字）を確認してください。</p></div>';
+<script type="module">
+// ===== data =====
+// 表示テキストは [日本語, English, 한국어, 中文] の順。
+// 管理画面で追加・編集したシナリオは {ja, en, ko, zh} 形式で Firestore に保存され、ここの既定値より優先されます。
+// p: 1=生命 2=安全 3=苦痛 4=その他 / dur: 対応に要する秒 / dl: 到着から期限までの秒
+// at: 到着時刻（秒）/ del: 同僚に任せてよいか / chk: 安全確認キー / lv: 出現する最低レベル(0-3)
+
+const PROFESSIONS = {
+  dr: ['医師', 'Physician', '의사', '医师'],
+  ns: ['看護師', 'Nurse', '간호사', '护士'],
+  ph: ['薬剤師', 'Pharmacist', '약사', '药剂师'],
+  pt: ['理学療法士', 'Physical therapist', '물리치료사', '物理治疗师'],
+  ot: ['作業療法士', 'Occupational therapist', '작업치료사', '作业治疗师'],
+  rd: ['管理栄養士', 'Dietitian', '영양사', '营养师'],
+  mt: ['臨床検査技師', 'Medical technologist', '임상병리사', '临床检验技师'],
+};
+
+const LEVELS = [
+  ['学生', 'Student', '학생', '学生'],
+  ['1年目', '1st year', '1년차', '第1年'],
+  ['2〜3年目', '2–3 years', '2~3년차', '第2–3年'],
+  ['4年目以上', '4+ years', '4년차 이상', '4年以上'],
+];
+
+const PRIORITY = {
+  1: ['生命', 'Life', '생명', '生命'],
+  2: ['安全', 'Safety', '안전', '安全'],
+  3: ['苦痛', 'Distress', '고통', '痛苦'],
+  4: ['その他', 'Other', '기타', '其他'],
+};
+
+// 選択肢の先頭が正解（表示時にシャッフル）
+const CHECKS = {
+  id: {
+    q: ['実施前の患者確認として最も適切なのは？', 'Best way to confirm patient identity before the procedure?', '시행 전 환자 확인으로 가장 적절한 것은?', '操作前确认患者身份最恰当的方法是？'],
+    o: [
+      ['本人にフルネームと生年月日を名乗ってもらい、リストバンドと照合する', 'Ask the patient to state full name and date of birth, and match with the wristband', '환자에게 이름과 생년월일을 직접 말하게 하고 팔찌와 대조한다', '请患者自述全名和出生日期，并与腕带核对'],
+      ['部屋番号とベッドの位置で確認する', 'Confirm by room number and bed position', '병실 번호와 침대 위치로 확인한다', '通过房间号和床位确认'],
+      ['名字で呼びかけ、返事があれば本人とみなす', 'Call the surname and assume identity if they answer', '성으로 부르고 대답하면 본인으로 간주한다', '叫姓氏，有回应即视为本人'],
+    ],
+  },
+  med: {
+    q: ['薬剤の準備・投与で最も適切なのは？', 'Most appropriate step when preparing or giving medication?', '약물 준비·투여에서 가장 적절한 것은?', '准备或给药时最恰当的做法是？'],
+    o: [
+      ['指示と薬剤を6Rで照合し、ハイリスク薬はダブルチェックする', 'Verify order and drug with the 6 Rights; double-check high-alert drugs', '지시와 약물을 6R로 대조하고 고위험 약물은 이중 확인한다', '按6R核对医嘱与药品，高警示药品双人核对'],
+      ['前回と同じ薬なので確認を省く', 'Skip the check because it is the same drug as last time', '지난번과 같은 약이므로 확인을 생략한다', '与上次相同药品，省略核对'],
+      ['忙しいので投与後にまとめて照合する', 'Too busy, so verify everything after administration', '바쁘니 투여 후 한꺼번에 대조한다', '太忙，给药后再统一核对'],
+    ],
+  },
+  sbar: {
+    q: ['医師への報告として最も適切なのは？', 'Which report to the physician is most appropriate?', '의사에게 보고하는 방법으로 가장 적절한 것은?', '向医生汇报最恰当的是？'],
+    o: [
+      ['状況→背景→評価→提案の順に伝え、診察を依頼する（SBAR）', 'Give situation, background, assessment and recommendation, and request a review (SBAR)', '상황→배경→평가→제안 순으로 전달하고 진찰을 요청한다(SBAR)', '按情况→背景→评估→建议汇报并请求查看（SBAR）'],
+      ['「なんとなく様子が変です」とだけ伝える', 'Just say "something seems off"', '"뭔가 이상해요"라고만 전한다', '只说"好像有点不对劲"'],
+      ['数値をひとつ伝えて電話を切る', 'Give one number and hang up', '수치 하나만 전하고 전화를 끊는다', '只报一个数值就挂断'],
+    ],
+  },
+  fall: {
+    q: ['転倒や急な変化に気づいたとき、最初に行うのは？', 'First action when you find a fall or a sudden change?', '낙상이나 급격한 변화를 발견했을 때 가장 먼저 할 일은?', '发现跌倒或病情突变时首先应做什么？'],
+    o: [
+      ['その場で意識・呼吸・外傷を評価し、応援を呼ぶ', 'Assess consciousness, breathing and injury on the spot, and call for help', '그 자리에서 의식·호흡·외상을 평가하고 도움을 요청한다', '就地评估意识、呼吸和外伤并呼叫支援'],
+      ['すぐに抱き起こしてベッドへ戻す', 'Lift the patient back to bed immediately', '즉시 일으켜 침대로 옮긴다', '立即扶起送回床上'],
+      ['先に記録を書いてから観察する', 'Write the record first, then observe', '먼저 기록한 뒤 관찰한다', '先写记录再观察'],
+    ],
+  },
+  specimen: {
+    q: ['検体の取り扱いで正しいのは？', 'Correct handling of specimens?', '검체 취급으로 올바른 것은?', '标本处理正确的是？'],
+    o: [
+      ['採取直後に患者の前でラベルを照合して貼る', 'Match and attach the label at the bedside right after collection', '채취 직후 환자 앞에서 라벨을 대조해 붙인다', '采集后立即在患者面前核对并贴标签'],
+      ['複数の検体をまとめて後でラベルを貼る', 'Label several specimens together later', '여러 검체를 모아서 나중에 라벨을 붙인다', '多个标本集中后再贴标签'],
+      ['容器に部屋番号だけを書いておく', 'Write only the room number on the tube', '용기에 병실 번호만 적어 둔다', '容器上只写房间号'],
+    ],
+  },
+  panic: {
+    q: ['パニック値を検出したときの対応は？', 'What to do when you detect a critical value?', '패닉값을 발견했을 때의 대응은?', '发现危急值时应如何处理？'],
+    o: [
+      ['検体と測定を確認し、直ちに担当医へ口頭で報告して記録する', 'Verify specimen and result, report verbally to the physician at once, and document', '검체와 측정을 확인하고 즉시 담당의에게 구두 보고 후 기록한다', '确认标本与结果，立即口头报告主管医生并记录'],
+      ['次の定時報告でまとめて伝える', 'Report it with the next scheduled batch', '다음 정기 보고 때 한꺼번에 전한다', '在下次定时汇报时一并告知'],
+      ['電子カルテに入力するだけにする', 'Only enter it in the electronic record', '전자차트에 입력만 한다', '只录入电子病历'],
+    ],
+  },
+  vital: {
+    q: ['訓練中に症状が出たときの対応は？', 'What to do when symptoms appear during therapy?', '훈련 중 증상이 나타났을 때의 대응은?', '训练中出现症状时应如何处理？'],
+    o: [
+      ['運動を中止してバイタルを測り、医師・看護師へ報告する', 'Stop exercise, check vital signs, and report to the physician or nurse', '운동을 중단하고 활력징후를 측정해 의사·간호사에게 보고한다', '停止运动，测量生命体征并报告医生或护士'],
+      ['少し休ませてから訓練を続ける', 'Rest briefly and continue', '잠시 쉬게 한 뒤 훈련을 계속한다', '稍作休息后继续训练'],
+      ['予定の訓練を終えてから報告する', 'Finish the planned session, then report', '예정된 훈련을 마친 뒤 보고한다', '完成计划训练后再报告'],
+    ],
+  },
+  diet: {
+    q: ['食事の変更・提供で確認すべきことは？', 'What must be checked when changing or serving a meal?', '식사 변경·제공 시 확인해야 할 것은?', '更改或供餐时必须确认什么？'],
+    o: [
+      ['アレルギー歴と食形態の指示を指示書と照合する', 'Match allergy history and texture order with the chart', '알레르기 이력과 식이 형태 지시를 지시서와 대조한다', '将过敏史和膳食形态医嘱与医嘱单核对'],
+      ['家族の話だけで判断する', 'Decide based only on what the family says', '가족의 말만으로 판단한다', '仅凭家属说法判断'],
+      ['前日と同じ内容にしておく', 'Keep it the same as yesterday', '전날과 같은 내용으로 둔다', '沿用前一天的内容'],
+    ],
+  },
+  dose: {
+    q: ['処方に疑義があるときの対応は？', 'What to do when a prescription looks wrong?', '처방에 의문이 있을 때의 대응은?', '对处方有疑问时应如何处理？'],
+    o: [
+      ['調剤を保留し、根拠を整理して処方医に照会・記録する', 'Hold dispensing, organize the evidence, query the prescriber, and document', '조제를 보류하고 근거를 정리해 처방의에게 조회·기록한다', '暂停调配，整理依据后向处方医生询问并记录'],
+      ['自己判断で用量を変えて調剤する', 'Change the dose on your own and dispense', '자의적으로 용량을 바꿔 조제한다', '自行更改剂量并调配'],
+      ['そのまま調剤し、患者に注意だけ伝える', 'Dispense as written and just warn the patient', '그대로 조제하고 환자에게 주의만 준다', '照原方调配，只提醒患者'],
+    ],
+  },
+  order: {
+    q: ['口頭指示を出すときに最も適切なのは？', 'Best practice when giving a verbal order?', '구두 지시를 내릴 때 가장 적절한 것은?', '下达口头医嘱时最恰当的是？'],
+    o: [
+      ['薬剤名・用量・経路を伝えて復唱してもらい、必ず記録する', 'State drug, dose and route, have it read back, and document it', '약물명·용량·경로를 전하고 복창하게 한 뒤 반드시 기록한다', '说明药名、剂量、途径，让对方复述，并记录'],
+      ['急いでいるので略語で短く伝える', 'Use abbreviations to save time', '급하니 약어로 짧게 전한다', '赶时间，用缩写简短交代'],
+      ['記録は不要なので伝えるだけにする', 'Just say it; no documentation needed', '기록은 필요 없으니 전달만 한다', '只口头交代，无需记录'],
+    ],
+  },
+};
+
+const TIPS = [
+  ['生命→安全→苦痛→その他の順で優先度を判断する', 'Prioritize life, then safety, then distress, then everything else', '생명→안전→고통→기타 순으로 우선순위를 정한다', '按生命→安全→痛苦→其他排序'],
+  ['中断する前に「どこまでやったか」をメモすると、再開時のミスが減る', 'A quick note of where you stopped reduces errors when you resume', '중단 전에 어디까지 했는지 메모하면 재개 시 실수가 줄어든다', '中断前记下进度，可减少恢复时的错误'],
+  ['専門的な判断が要らない課題は、手の空いた同僚に任せる', 'Delegate tasks that do not need your professional judgment', '전문적 판단이 필요 없는 과제는 여유 있는 동료에게 맡긴다', '不需要专业判断的任务交给空闲的同事'],
+  ['報告はSBARで簡潔に伝える', 'Report concisely with SBAR', '보고는 SBAR로 간결하게 한다', '用SBAR简洁汇报'],
+  ['忙しい時ほど、患者確認とダブルチェックを省かない', 'Never skip identity checks and double-checks, especially when busy', '바쁠수록 환자 확인과 이중 확인을 생략하지 않는다', '越忙越不能省略身份核对和双人核对'],
+];
+
+const mk = (id, t, p, dur, dl, at, del, chk = null, lv = 0) => ({ id, t, p, dur, dl, at, del, chk, lv });
+
+const BUILTIN_SCENARIOS = [
+  {
+    id: 'ns-night', prof: 'ns', limit: 150,
+    title: ['夜勤帯のナースコール', 'Night shift: call lights', '야간 근무의 호출벨', '夜班呼叫铃'],
+    intro: ['深夜の病棟。受け持ちは6名、看護補助者が1名います。次々に入る呼び出しに優先順位をつけて対応してください。', 'Late night on the ward. You have 6 patients and one nursing assistant. Prioritize the calls that keep coming.', '심야 병동. 담당 환자 6명, 간호조무사 1명이 있습니다. 계속 들어오는 호출에 우선순위를 정해 대응하세요.', '深夜病房。你负责6名患者，有1名护理员。请为不断到来的呼叫排出优先顺序并处理。'],
+    tasks: [
+      mk('n1', ['405号室 Bさん（転倒リスク高）がトイレに行きたい', 'Room 405, Mr B (high fall risk) wants the toilet', '405호 B씨(낙상 고위험)가 화장실에 가고 싶어 함', '405房B先生（跌倒高风险）想上厕所'], 2, 10, 40, 0, true),
+      mk('n2', ['401号室 点滴ポンプの閉塞アラーム', 'Room 401: IV pump occlusion alarm', '401호 수액 펌프 폐색 알람', '401房输液泵堵塞报警'], 2, 10, 45, 5, false),
+      mk('n3', ['403号室 Cさん「胸が苦しい」', 'Room 403, Ms C: "My chest feels tight"', '403호 C씨 "가슴이 답답해요"', '403房C女士："胸口发闷"'], 1, 18, 25, 16, false, 'sbar'),
+      mk('n4', ['電話：家族から面会時間の問い合わせ', 'Phone: family asking about visiting hours', '전화: 가족의 면회 시간 문의', '电话：家属询问探视时间'], 4, 6, 60, 24, true),
+      mk('n5', ['406号室 離床センサーが鳴っている', 'Room 406: bed-exit alarm', '406호 침상 이탈 센서 울림', '406房离床报警器响了'], 2, 8, 30, 38, true),
+      mk('n6', ['22時の定時抗菌薬の投与', '22:00 scheduled IV antibiotic', '22시 정시 항생제 투여', '22点定时抗生素给药'], 2, 14, 60, 48, false, 'med'),
+      mk('n7', ['402号室 Eさん 痛みが強く頓用薬を希望', 'Room 402, Mr E: severe pain, asks for PRN analgesic', '402호 E씨 통증이 심해 필요시 진통제 요청', '402房E先生疼痛加剧，要求临时止痛药'], 3, 12, 50, 62, false, 'med', 1),
+      mk('n8', ['隣の部屋で大きな物音', 'A loud thud from the next room', '옆 병실에서 큰 소리', '隔壁病房传来巨响'], 2, 12, 25, 78, false, 'fall', 2),
+    ],
+  },
+  {
+    id: 'ns-day', prof: 'ns', limit: 150,
+    title: ['日勤の与薬と入院対応', 'Day shift: meds and admissions', '주간 근무: 투약과 입원', '白班：给药与入院'],
+    intro: ['日勤の午前中。与薬の準備中に、電話・入院・急変が重なります。手の空いている看護師が1名います。', 'Morning day shift. Calls, an admission and a deteriorating patient overlap with your medication round. One nurse colleague is free.', '주간 근무 오전. 투약 준비 중에 전화·입원·급변이 겹칩니다. 여유 있는 간호사 1명이 있습니다.', '白班上午。准备给药时，电话、入院和病情变化接踵而至。有1名空闲的护士。'],
+    tasks: [
+      mk('d1', ['食前インスリンの準備と投与', 'Prepare and give pre-meal insulin', '식전 인슐린 준비·투여', '准备并注射餐前胰岛素'], 2, 16, 60, 0, false, 'med'),
+      mk('d2', ['電話：医師から検査結果の確認依頼', 'Phone: physician asks you to check a lab result', '전화: 의사가 검사 결과 확인 요청', '电话：医生请你确认检查结果'], 4, 8, 50, 8, true),
+      mk('d3', ['新規入院の患者が病棟に到着', 'New admission arrives on the ward', '신규 입원 환자 병동 도착', '新入院患者到达病房'], 3, 15, 60, 16, true),
+      mk('d4', ['術後患者の血圧が80/50に低下', 'Post-op patient: BP dropped to 80/50', '수술 후 환자 혈압 80/50으로 저하', '术后患者血压降至80/50'], 1, 18, 25, 28, false, 'sbar'),
+      mk('d5', ['家族が退院の説明を求めている', 'Family asks about discharge', '가족이 퇴원 설명을 요청', '家属要求解释出院事项'], 4, 10, 70, 40, true),
+      mk('d6', ['採血検体を検査室へ提出', 'Send blood samples to the lab', '채혈 검체를 검사실로 제출', '将血标本送检'], 2, 8, 45, 52, true, 'specimen'),
+      mk('d7', ['せん妄の患者が点滴を抜こうとしている', 'Delirious patient trying to pull out the IV', '섬망 환자가 수액을 뽑으려 함', '谵妄患者试图拔输液管'], 2, 10, 20, 68, false, null, 1),
+      mk('d8', ['隣のベッドの患者が嘔吐', 'Patient in the next bed is vomiting', '옆 침대 환자 구토', '邻床患者呕吐'], 2, 10, 25, 82, false, null, 2),
+    ],
+  },
+  {
+    id: 'dr-ed', prof: 'dr', limit: 150,
+    title: ['救急外来の並行診療', 'ED: parallel patient care', '응급실 병행 진료', '急诊并行诊疗'],
+    intro: ['救急外来の研修医。複数の患者を同時に担当しています。手の空いている医師が1名います。', 'ED resident managing several patients at once. One colleague physician is available.', '응급실 전공의. 여러 환자를 동시에 맡고 있습니다. 여유 있는 의사 1명이 있습니다.', '急诊住院医师，同时负责多名患者。有1名空闲的医生。'],
+    tasks: [
+      mk('e1', ['ベッド1：腹痛の20代女性、診察の続き', 'Bed 1: woman in her 20s with abdominal pain, continue the exam', '1번 침대: 복통 20대 여성, 진찰 계속', '1号床：20多岁女性腹痛，继续检查'], 3, 20, 90, 0, false),
+      mk('e2', ['ベッド3：58歳男性の胸痛、心電図の判読', 'Bed 3: 58-year-old man with chest pain, read the ECG', '3번 침대: 58세 남성 흉통, 심전도 판독', '3号床：58岁男性胸痛，判读心电图'], 1, 10, 20, 6, false),
+      mk('e3', ['看護師：ベッド5の発熱に解熱薬の指示を', 'Nurse: antipyretic order for fever in Bed 5', '간호사: 5번 침대 발열에 해열제 지시', '护士：5号床发热，请开退热药'], 3, 6, 50, 16, true, 'order'),
+      mk('e4', ['救急隊ホットライン：意識障害の受け入れ要請', 'EMS hotline: request to accept a patient with altered consciousness', '구급대 핫라인: 의식장애 환자 수용 요청', '急救热线：请求接收意识障碍患者'], 1, 8, 20, 30, false),
+      mk('e5', ['検査室：ベッド2のカリウム6.8', 'Lab: Bed 2 potassium 6.8', '검사실: 2번 침대 칼륨 6.8', '检验科：2号床血钾6.8'], 1, 12, 25, 46, false, 'order'),
+      mk('e6', ['家族から病状説明の依頼', 'Family requests an update', '가족이 병세 설명 요청', '家属要求说明病情'], 4, 10, 70, 56, true),
+      mk('e7', ['病棟から持参薬確認の電話', 'Ward calls about home medications', '병동에서 지참약 확인 전화', '病房来电确认自带药物'], 4, 6, 60, 70, true, null, 1),
+      mk('e8', ['ベッド4：転倒した高齢者の頭部CT確認', 'Bed 4: review head CT of an older patient who fell', '4번 침대: 낙상 고령자 두부 CT 확인', '4号床：跌倒老人头部CT确认'], 2, 10, 40, 84, false, null, 2),
+    ],
+  },
+  {
+    id: 'dr-night', prof: 'dr', limit: 150,
+    title: ['病棟当直', 'Night on-call', '병동 당직', '病房夜班值班'],
+    intro: ['夜間の病棟当直。3つの病棟から電話が入ります。相談できる上級医が1名います。', 'Night on-call covering three wards. One senior physician is available.', '야간 병동 당직. 세 병동에서 전화가 옵니다. 상의할 수 있는 선배 의사 1명이 있습니다.', '夜间病房值班，三个病房来电。有1名上级医生可以求助。'],
+    tasks: [
+      mk('w1', ['A病棟：不眠の患者に睡眠薬の指示を', 'Ward A: sleeping pill order for insomnia', 'A병동: 불면 환자 수면제 지시', 'A病房：失眠患者请开安眠药'], 4, 6, 70, 0, false, 'order'),
+      mk('w2', ['B病棟：術後患者の尿量が低下', 'Ward B: low urine output after surgery', 'B병동: 수술 후 환자 소변량 감소', 'B病房：术后患者尿量减少'], 2, 14, 50, 8, false),
+      mk('w3', ['C病棟：SpO2が85%に低下と連絡', 'Ward C: SpO2 dropped to 85%', 'C병동: SpO2 85%로 저하 연락', 'C病房：SpO2降至85%'], 1, 18, 20, 20, false, 'order'),
+      mk('w4', ['救急外来から入院の相談', 'ED asks about an admission', '응급실에서 입원 상담', '急诊咨询收住院'], 3, 10, 60, 32, true),
+      mk('w5', ['A病棟：点滴ルートの再確保', 'Ward A: re-site an IV line', 'A병동: 수액 라인 재확보', 'A病房：重新建立静脉通路'], 4, 10, 70, 44, true),
+      mk('w6', ['B病棟：転倒した患者の診察', 'Ward B: examine a patient who fell', 'B병동: 낙상 환자 진찰', 'B病房：检查跌倒的患者'], 2, 12, 35, 58, false, 'fall'),
+      mk('w7', ['薬剤部から処方の疑義照会', 'Pharmacy query about a prescription', '약제부의 처방 조회', '药剂科对处方提出疑问'], 3, 6, 50, 72, false, null, 1),
+      mk('w8', ['C病棟：看取り期の患者の家族への説明', 'Ward C: talk with the family of a dying patient', 'C병동: 임종기 환자 가족 설명', 'C病房：向临终患者家属说明'], 3, 14, 60, 86, false, null, 2),
+    ],
+  },
+  {
+    id: 'ph-disp', prof: 'ph', limit: 150,
+    title: ['調剤室の割り込み', 'Dispensary interruptions', '조제실의 방해 요인', '调剂室的打断'],
+    intro: ['調剤室の午前中。調剤・鑑査の最中に電話や緊急依頼が入ります。もう1名の薬剤師がいます。', 'Morning in the dispensary. Calls and urgent requests arrive while you dispense and check. One other pharmacist is on duty.', '조제실 오전. 조제·감사 중에 전화와 긴급 요청이 들어옵니다. 다른 약사 1명이 있습니다.', '调剂室上午。调配和核对中不断有电话和紧急请求。另有1名药剂师。'],
+    tasks: [
+      mk('p1', ['外来処方の調剤（10剤）', 'Dispense an outpatient prescription (10 items)', '외래 처방 조제(10종)', '调配门诊处方（10种）'], 3, 20, 80, 0, true, 'med'),
+      mk('p2', ['処方に疑義：腎機能低下の患者に通常量', 'Query: standard dose for a patient with renal impairment', '처방 의문: 신기능 저하 환자에 통상 용량', '处方疑问：肾功能不全患者用常规剂量'], 2, 10, 50, 10, false, 'dose'),
+      mk('p3', ['窓口で患者が薬の説明を待っている', 'Patient waiting at the counter for counseling', '창구에서 환자가 약 설명을 기다림', '患者在窗口等待用药说明'], 3, 10, 50, 20, true),
+      mk('p4', ['電話：医師から配合変化の問い合わせ', 'Phone: physician asks about IV compatibility', '전화: 의사의 배합 변화 문의', '电话：医生询问配伍变化'], 3, 8, 50, 30, true),
+      mk('p5', ['院内緊急コール：アナフィラキシー、アドレナリン持参', 'Code call: anaphylaxis, bring adrenaline', '원내 응급 호출: 아나필락시스, 아드레날린 지참', '院内紧急呼叫：过敏性休克，携带肾上腺素'], 1, 10, 20, 42, false),
+      mk('p6', ['抗がん剤の至急調製依頼', 'Urgent chemotherapy preparation', '항암제 긴급 조제 요청', '紧急配置抗癌药'], 2, 16, 60, 54, false, 'med'),
+      mk('p7', ['鑑査待ちの処方がたまっている', 'Prescriptions piling up for final check', '감사 대기 처방이 쌓여 있음', '待核对处方堆积'], 3, 12, 60, 68, true, null, 1),
+      mk('p8', ['麻薬の払い出し', 'Dispense a narcotic', '마약 불출', '发放麻醉药品'], 2, 10, 50, 82, false, 'med', 2),
+    ],
+  },
+  {
+    id: 'ph-ward', prof: 'ph', limit: 150,
+    title: ['病棟薬剤業務', 'Ward pharmacy', '병동 약제 업무', '病房药学服务'],
+    intro: ['病棟担当の薬剤師。持参薬確認や指導の予定に、医師・看護師からの問い合わせが重なります。応援を頼める薬剤師が1名います。', 'Ward pharmacist. Questions from physicians and nurses pile onto medication reconciliation and counseling. One colleague can help.', '병동 담당 약사. 지참약 확인과 복약지도 일정에 의사·간호사 문의가 겹칩니다. 도움을 요청할 수 있는 약사 1명이 있습니다.', '病房药剂师。在核对自带药和用药指导之外，医生和护士的咨询不断。有1名药剂师可以支援。'],
+    tasks: [
+      mk('q1', ['新規入院患者の持参薬確認', 'Reconcile medications of a new admission', '신규 입원 환자 지참약 확인', '核对新入院患者的自带药'], 3, 16, 80, 0, true),
+      mk('q2', ['看護師：透析患者の投与量の確認', 'Nurse: check the dose for a dialysis patient', '간호사: 투석 환자 투여량 확인', '护士：确认透析患者剂量'], 2, 10, 40, 10, false, 'dose'),
+      mk('q3', ['医師：TDMに基づく投与設計の相談', 'Physician: TDM-based dosing plan', '의사: TDM 기반 투여 설계 상담', '医生：基于TDM的给药方案咨询'], 2, 14, 60, 22, false),
+      mk('q4', ['退院時服薬指導の予定時刻', 'Scheduled discharge counseling', '퇴원 복약지도 예정 시각', '出院用药指导的预定时间'], 3, 12, 50, 34, true),
+      mk('q5', ['患者が内服後にじんましんと息苦しさ', 'Patient has hives and breathlessness after a dose', '환자가 복용 후 두드러기와 호흡곤란', '患者服药后出现荨麻疹和呼吸困难'], 1, 12, 20, 48, false, 'sbar'),
+      mk('q6', ['看護師：点滴の配合変化の確認', 'Nurse: check IV compatibility', '간호사: 수액 배합 변화 확인', '护士：确认输液配伍'], 2, 8, 40, 60, false, null, 1),
+      mk('q7', ['カンファレンス資料の作成', 'Prepare conference materials', '컨퍼런스 자료 작성', '准备会议资料'], 4, 12, 80, 74, true, null, 2),
+    ],
+  },
+  {
+    id: 'pt-ward', prof: 'pt', limit: 150,
+    title: ['病棟リハビリと急な変化', 'Ward rehab and sudden changes', '병동 재활과 급변', '病房康复与突发变化'],
+    intro: ['病棟でのリハビリ。予定の訓練と記録の合間に、急な症状や依頼が入ります。同じ病棟にもう1名の療法士がいます。', 'Rehab on the ward. Sudden symptoms and requests arrive between sessions and documentation. Another therapist is on the ward.', '병동 재활. 예정된 훈련과 기록 사이에 갑작스러운 증상과 요청이 들어옵니다. 같은 병동에 치료사 1명이 더 있습니다.', '病房康复。在训练和记录之间，突发症状和请求接连出现。病房另有1名治疗师。'],
+    tasks: [
+      mk('t1', ['予定の歩行訓練（大腿骨術後）', 'Scheduled gait training (after hip surgery)', '예정된 보행 훈련(대퇴골 수술 후)', '预定的步行训练（股骨术后）'], 3, 18, 70, 0, false),
+      mk('t2', ['訓練中の患者が胸部不快と息切れ', 'Patient in session: chest discomfort and breathlessness', '훈련 중 환자가 흉부 불쾌감과 숨참', '训练中患者胸部不适、气促'], 1, 14, 20, 14, false, 'vital'),
+      mk('t3', ['看護師：リハの時間変更の依頼', 'Nurse: request to reschedule a session', '간호사: 재활 시간 변경 요청', '护士：请求调整康复时间'], 4, 5, 60, 24, true),
+      mk('t4', ['次の患者が訓練室で一人で待っている（転倒リスク）', 'Next patient waiting alone in the gym (fall risk)', '다음 환자가 훈련실에서 혼자 대기(낙상 위험)', '下一位患者独自在训练室等待（跌倒风险）'], 2, 8, 30, 36, true),
+      mk('t5', ['医師：離床を進めてよいかの相談', 'Physician: asks whether to progress mobilization', '의사: 조기 보행 진행 여부 상담', '医生：咨询是否推进下床活动'], 3, 8, 50, 48, false),
+      mk('t6', ['起立時に血圧が下がり、めまいを訴える', 'Dizziness with a BP drop on standing', '기립 시 혈압 저하와 어지럼 호소', '起立时血压下降、头晕'], 1, 12, 20, 62, false, 'vital', 1),
+      mk('t7', ['リハビリ記録の締め切り', 'Documentation deadline', '재활 기록 마감', '康复记录截止'], 4, 10, 60, 76, false, null, 1),
+      mk('t8', ['家族への退院前の介助指導', 'Pre-discharge caregiver training for the family', '가족 대상 퇴원 전 돌봄 지도', '出院前对家属的照护指导'], 3, 12, 60, 88, true, null, 2),
+    ],
+  },
+  {
+    id: 'ot-acute', prof: 'ot', limit: 150,
+    title: ['急性期の作業療法', 'Acute-care occupational therapy', '급성기 작업치료', '急性期作业治疗'],
+    intro: ['急性期病棟の作業療法士。ADL訓練の最中に、安全に関わる出来事や多職種からの依頼が重なります。同僚の療法士が1名います。', 'Acute-care OT. Safety events and requests from the team overlap with ADL training. One colleague therapist is available.', '급성기 병동 작업치료사. ADL 훈련 중에 안전 관련 사건과 다직종 요청이 겹칩니다. 동료 치료사 1명이 있습니다.', '急性期病房作业治疗师。在ADL训练中，安全事件和多学科请求接踵而至。有1名同事治疗师。'],
+    tasks: [
+      mk('o1', ['脳卒中患者の更衣訓練', 'Dressing training for a stroke patient', '뇌졸중 환자 옷 입기 훈련', '脑卒中患者穿衣训练'], 3, 18, 70, 0, false),
+      mk('o2', ['食事動作訓練中にむせて咳き込む', 'Choking and coughing during eating practice', '식사 동작 훈련 중 사레들려 기침', '进食训练中呛咳'], 1, 12, 20, 12, false, 'vital'),
+      mk('o3', ['看護師：自助具の調整依頼', 'Nurse: adjust an assistive device', '간호사: 자조구 조정 요청', '护士：请求调整自助具'], 4, 8, 60, 24, true),
+      mk('o4', ['高次脳機能障害の患者が一人で立ち上がろうとしている', 'Patient with cognitive impairment trying to stand alone', '고차뇌기능장애 환자가 혼자 일어서려 함', '高级脑功能障碍患者试图独自站起'], 2, 8, 20, 36, false, 'fall'),
+      mk('o5', ['家族：退院後の住宅改修の相談', 'Family: home modification advice', '가족: 퇴원 후 주택 개조 상담', '家属：出院后住宅改造咨询'], 3, 12, 60, 48, true),
+      mk('o6', ['多職種カンファレンスの資料準備', 'Prepare materials for the team conference', '다직종 컨퍼런스 자료 준비', '准备多学科会议资料'], 4, 10, 70, 60, true, null, 1),
+      mk('o7', ['医師：自宅退院の可否について至急意見を', 'Physician: urgent opinion on discharge home', '의사: 자택 퇴원 가부에 대한 긴급 의견', '医生：紧急询问能否出院回家'], 3, 10, 40, 76, false, null, 2),
+    ],
+  },
+  {
+    id: 'rd-ward', prof: 'rd', limit: 150,
+    title: ['栄養管理の同時進行', 'Parallel nutrition care', '영양 관리의 동시 진행', '营养管理同时进行'],
+    intro: ['病棟担当の管理栄養士。栄養評価や回診の予定に、食事の緊急変更や安全に関わる連絡が入ります。同僚の栄養士が1名います。', 'Ward dietitian. Urgent meal changes and safety calls interrupt assessments and rounds. One colleague dietitian is available.', '병동 담당 영양사. 영양 평가와 회진 일정 중에 식사 긴급 변경과 안전 관련 연락이 들어옵니다. 동료 영양사 1명이 있습니다.', '病房营养师。营养评估和查房之间，紧急更改膳食和安全相关联络不断。有1名同事营养师。'],
+    tasks: [
+      mk('r1', ['新規入院患者の栄養スクリーニング（高リスク）', 'Nutrition screening of a high-risk new admission', '신규 입원 환자 영양 스크리닝(고위험)', '新入院高风险患者营养筛查'], 3, 14, 70, 0, true),
+      mk('r2', ['病棟：嚥下障害の患者の食形態を至急変更', 'Ward: urgent texture change for a patient with dysphagia', '병동: 연하장애 환자 식이 형태 긴급 변경', '病房：吞咽障碍患者紧急更改膳食形态'], 2, 10, 35, 10, false, 'diet'),
+      mk('r3', ['NST回診の開始時刻', 'Nutrition support team rounds starting', 'NST 회진 시작 시각', '营养支持小组查房开始'], 3, 16, 50, 22, false),
+      mk('r4', ['食物アレルギーの患者に誤配膳の疑い', 'Possible wrong tray served to a patient with food allergy', '식품 알레르기 환자에게 오배식 의심', '食物过敏患者疑似送错餐'], 1, 10, 20, 36, false, 'diet'),
+      mk('r5', ['外来患者の栄養相談（予約）', 'Scheduled outpatient nutrition counseling', '외래 환자 영양 상담(예약)', '门诊患者营养咨询（预约）'], 3, 12, 60, 48, true),
+      mk('r6', ['厨房：食材の急な欠品', 'Kitchen: an ingredient is suddenly unavailable', '주방: 식재료 긴급 품절', '厨房：食材突然缺货'], 4, 8, 60, 60, true),
+      mk('r7', ['看護師：経腸栄養で下痢が続くと相談', 'Nurse: ongoing diarrhea on tube feeding', '간호사: 경장영양 중 설사 지속 상담', '护士：肠内营养期间持续腹泻'], 3, 10, 50, 72, false, null, 1),
+      mk('r8', ['糖尿病教室の資料準備', 'Prepare diabetes class materials', '당뇨병 교실 자료 준비', '准备糖尿病课程资料'], 4, 10, 70, 84, true, null, 2),
+    ],
+  },
+  {
+    id: 'mt-lab', prof: 'mt', limit: 150,
+    title: ['検査室の緊急割り込み', 'Lab: urgent interruptions', '검사실 긴급 인터럽트', '检验科紧急插入'],
+    intro: ['検査室の日勤。定時検体の処理中に、至急検査やパニック値、採血室の混雑が重なります。同僚の技師が1名います。', 'Day shift in the lab. STAT tests, critical values and a crowded phlebotomy room overlap with routine samples. One colleague is available.', '검사실 주간 근무. 정시 검체 처리 중에 긴급 검사, 패닉값, 채혈실 혼잡이 겹칩니다. 동료 임상병리사 1명이 있습니다.', '检验科白班。常规标本处理中，急诊检验、危急值和采血室拥挤接踵而至。有1名同事技师。'],
+    tasks: [
+      mk('m1', ['定時の生化学検体の測定（大量）', 'Run the routine chemistry batch', '정시 생화학 검체 측정(대량)', '检测常规生化标本（大批）'], 3, 18, 80, 0, true),
+      mk('m2', ['救急外来から至急の血液ガス', 'STAT blood gas from the ED', '응급실 긴급 혈액가스', '急诊送来紧急血气'], 2, 10, 30, 10, false, 'specimen'),
+      mk('m3', ['カリウム6.8のパニック値を検出', 'Critical value detected: potassium 6.8', '칼륨 6.8 패닉값 검출', '检测到血钾6.8危急值'], 1, 8, 20, 22, false, 'panic'),
+      mk('m4', ['採血室：外来の待ち人数が増えている', 'Phlebotomy: outpatient queue growing', '채혈실: 외래 대기 인원 증가', '采血室：门诊等候人数增加'], 3, 14, 60, 34, true, 'id'),
+      mk('m5', ['分析装置のエラーアラーム', 'Analyzer error alarm', '분석 장비 오류 알람', '分析仪错误报警'], 2, 10, 40, 46, true),
+      mk('m6', ['手術室から輸血の交差適合試験を至急', 'OR: urgent crossmatch for transfusion', '수술실: 수혈 교차적합시험 긴급', '手术室：紧急输血交叉配血'], 1, 14, 30, 58, false, 'specimen'),
+      mk('m7', ['医師から検査追加の電話', 'Physician calls to add a test', '의사의 검사 추가 전화', '医生来电追加检验'], 4, 6, 60, 72, true, null, 1),
+      mk('m8', ['精度管理データに外れ値', 'QC result out of range', '정도관리 데이터 이상값', '质控数据出现异常值'], 2, 10, 50, 84, false, null, 2),
+    ],
+  },
+];
+
+// ===== i18n =====
+const LANGS = [['ja', '日本語'], ['en', 'English'], ['ko', '한국어'], ['zh', '中文']];
+
+// [日本語, English, 한국어, 中文]
+const T = {
+  appTitle: ['多重課題シミュレーション', 'Multitask Simulation', '멀티태스크 시뮬레이션', '多重任务模拟'],
+  tagline: ['呼び出しは次々に入ります。何から手をつけるかを決めて、安全に対応してください。', 'Calls keep coming. Decide what to do first, and do it safely.', '호출은 계속 들어옵니다. 무엇부터 할지 정하고 안전하게 대응하세요.', '呼叫接连不断。决定先做什么，并安全地完成。'],
+  demo1: ['403号室「胸が苦しい」', 'Room 403: "My chest feels tight"', '403호 "가슴이 답답해요"', '403房："胸口发闷"'],
+  demo2: ['405号室 トイレに行きたい（転倒リスク高）', 'Room 405 wants the toilet (fall risk)', '405호 화장실 요청(낙상 위험)', '405房想上厕所（跌倒风险）'],
+  demo3: ['電話：面会時間の問い合わせ', 'Phone: visiting hours question', '전화: 면회 시간 문의', '电话：询问探视时间'],
+  login: ['Googleでログイン', 'Sign in with Google', 'Google로 로그인', '使用Google登录'],
+  logout: ['ログアウト', 'Sign out', '로그아웃', '退出登录'],
+  localMode: ['Firebaseが未設定のため、ひとりで練習だけ使えます。設定方法はREADMEを参照してください。', 'Firebase is not configured, so only solo practice is available. See the README to set it up.', 'Firebase가 설정되지 않아 혼자 연습만 가능합니다. 설정 방법은 README를 참고하세요.', '尚未配置Firebase，仅可单人练习。配置方法请参阅README。'],
+  needLogin: ['セッションを作る・参加するにはログインしてください。', 'Sign in to create or join a session.', '세션을 만들거나 참가하려면 로그인하세요.', '请登录后创建或加入会话。'],
+  you: ['あなた', 'You', '나', '你'],
+  yourName: ['表示名', 'Display name', '표시 이름', '显示名称'],
+  profession: ['職種', 'Profession', '직종', '职业'],
+  level: ['経験', 'Experience', '경력', '经验'],
+  soloPlay: ['ひとりで練習', 'Practice solo', '혼자 연습', '单人练习'],
+  soloDesc: ['NPCのライバルやチームメイトと点数を競います。', 'Compete for points against NPC rivals or with NPC teammates.', 'NPC 라이벌이나 팀원과 점수를 겨룹니다.', '与NPC对手或队友比拼分数。'],
+  multiTitle: ['みんなで対戦', 'Play together', '함께 대전', '多人对战'],
+  multiDesc: ['別々の端末から同じセッションに参加します。職種も経験もばらばらで構いません。', 'Join the same session from different devices. Mixed professions and experience are fine.', '서로 다른 기기에서 같은 세션에 참가합니다. 직종과 경력이 달라도 괜찮습니다.', '从不同设备加入同一会话。职业和经验可以各不相同。'],
+  createSession: ['セッションを作る', 'Create a session', '세션 만들기', '创建会话'],
+  sessionCode: ['セッションコード', 'Session code', '세션 코드', '会话代码'],
+  join: ['参加する', 'Join', '참가', '加入'],
+  admin: ['管理者', 'Admin', '관리자', '管理员'],
+  evidenceNote: ['理学療法士・作業療法士・管理栄養士・臨床検査技師のシナリオは、職種固有の研究が少ないため近接領域の知見をもとに作成しています。', 'Scenarios for physical therapists, occupational therapists, dietitians and medical technologists draw on adjacent fields because profession-specific research is limited.', '물리치료사·작업치료사·영양사·임상병리사 시나리오는 직종 고유의 연구가 적어 인접 분야의 지견을 바탕으로 작성했습니다.', '物理治疗师、作业治疗师、营养师和检验技师的场景因专业研究较少，参考了相近领域的研究。'],
+  mode: ['対戦形式', 'Format', '대전 형식', '对战形式'],
+  modeIndividual: ['個人戦', 'Individual', '개인전', '个人赛'],
+  modeTeam: ['対抗戦', 'Team battle', '대항전', '团队对抗'],
+  soloIndDesc: ['NPC 3人と個人の点数を競います。', 'Compete individually against 3 NPCs.', 'NPC 3명과 개인 점수를 겨룹니다.', '与3名NPC比拼个人分数。'],
+  soloTeamDesc: ['あなたとNPC 2人がチームA、NPC 3人がチームBです。チームメイトがいる分、任せられる同僚が1人増えます。', 'You and 2 NPCs form Team A against 3 NPCs in Team B. Your teammates add one more colleague you can delegate to.', '당신과 NPC 2명이 팀 A, NPC 3명이 팀 B입니다. 팀원 덕분에 맡길 수 있는 동료가 1명 늘어납니다.', '你和2名NPC组成A队，3名NPC组成B队。有队友在，可委托的同事多1人。'],
+  scenario: ['シナリオ', 'Scenario', '시나리오', '场景'],
+  random: ['おまかせ', 'Random', '무작위', '随机'],
+  start: ['開始する', 'Start', '시작', '开始'],
+  backHome: ['ホームへ', 'Home', '홈으로', '返回首页'],
+  noVideo: ['動画は登録されていません。', 'No video has been added.', '등록된 동영상이 없습니다.', '尚未添加视频。'],
+  openVideo: ['動画を開く', 'Open video', '동영상 열기', '打开视频'],
+  players: ['参加者', 'Players', '참가자', '参与者'],
+  host: ['主催', 'Host', '호스트', '主持'],
+  yourTeam: ['あなたのチーム', 'Your team', '당신의 팀', '你的队伍'],
+  teamA: ['チームA', 'Team A', '팀 A', 'A队'],
+  teamB: ['チームB', 'Team B', '팀 B', 'B队'],
+  yourScenario: ['あなたのシナリオ', 'Your scenario', '당신의 시나리오', '你的场景'],
+  waitingHost: ['主催者が開始するのを待っています。', 'Waiting for the host to start.', '호스트가 시작하기를 기다리는 중입니다.', '等待主持人开始。'],
+  shareLink: ['参加用リンクをコピー', 'Copy join link', '참가 링크 복사', '复制加入链接'],
+  copied: ['コピーしました', 'Copied', '복사했습니다', '已复制'],
+  leave: ['退出する', 'Leave', '나가기', '退出'],
+  timeLeft: ['残り時間', 'Time left', '남은 시간', '剩余时间'],
+  score: ['スコア', 'Score', '점수', '分数'],
+  hintPriority: ['学生レベルでは、呼び出しに優先度の色が表示されます。', 'At student level, priority colors are shown on each call.', '학생 레벨에서는 호출에 우선순위 색이 표시됩니다.', '学生级别会在呼叫上显示优先级颜色。'],
+  calls: ['呼び出し', 'Incoming', '호출', '呼叫'],
+  working: ['対応中', 'In progress', '대응 중', '处理中'],
+  paused: ['中断中', 'Paused', '중단 중', '已中断'],
+  staff: ['同僚', 'Colleagues', '동료', '同事'],
+  ranking: ['順位', 'Ranking', '순위', '排名'],
+  noCalls: ['いまは呼び出しがありません。', 'No calls right now.', '지금은 호출이 없습니다.', '目前没有呼叫。'],
+  none: ['なし', 'None', '없음', '无'],
+  doIt: ['対応する', 'Do it', '대응', '处理'],
+  delegate: ['任せる', 'Delegate', '맡기기', '委托'],
+  resume: ['再開する', 'Resume', '재개', '恢复'],
+  memo: ['再開メモを残す', 'Leave a resume note', '재개 메모 남기기', '留下恢复备注'],
+  memoDone: ['メモあり', 'Note saved', '메모 있음', '已备注'],
+  noMemoLabel: ['メモなし', 'No note', '메모 없음', '无备注'],
+  staffFree: ['空き', 'Free', '여유', '空闲'],
+  staffBusy: ['対応中', 'Busy', '대응 중', '忙碌'],
+  checkTitle: ['安全確認', 'Safety check', '안전 확인', '安全核对'],
+  ev_badPriority: ['もっと優先度の高い課題があります', 'A higher-priority task is waiting', '더 우선순위가 높은 과제가 있습니다', '还有更高优先级的任务'],
+  ev_badDelegate: ['この課題はあなたの判断が必要です', 'This task needs your own judgment', '이 과제는 당신의 판단이 필요합니다', '此任务需要你亲自判断'],
+  noStaff: ['手の空いている同僚がいません', 'No colleague is free', '여유 있는 동료가 없습니다', '没有空闲的同事'],
+  ev_missed: ['期限切れ：{task}', 'Missed: {task}', '기한 초과: {task}', '超时：{task}'],
+  ev_resumeSlip: ['メモなしで再開したため、手順を確認し直しました', 'Resumed without a note, so you had to recheck the steps', '메모 없이 재개하여 절차를 다시 확인했습니다', '无备注恢复，只能重新确认步骤'],
+  ev_resumeOk: ['メモのおかげで、すぐに再開できました', 'Your note helped you resume quickly', '메모 덕분에 바로 재개했습니다', '有备注，迅速恢复'],
+  ev_checkWrong: ['安全確認を誤りました', 'Safety check was wrong', '안전 확인이 틀렸습니다', '安全核对有误'],
+  ev_checkOk: ['安全確認OK', 'Safety check passed', '안전 확인 완료', '安全核对通过'],
+  ev_delegated: ['同僚に任せました', 'Delegated to a colleague', '동료에게 맡겼습니다', '已委托给同事'],
+  reviewTitle: ['振り返り', 'Debrief', '돌아보기', '复盘'],
+  task: ['課題', 'Task', '과제', '任务'],
+  priority: ['優先度', 'Priority', '우선순위', '优先级'],
+  delegable: ['任せてよい', 'Delegable', '위임 가능', '可委托'],
+  outcome: ['結果', 'Outcome', '결과', '结果'],
+  done: ['完了', 'Done', '완료', '完成'],
+  delegated: ['委任', 'Delegated', '위임', '已委托'],
+  missed: ['期限切れ', 'Missed', '기한 초과', '超时'],
+  incomplete: ['未完了', 'Incomplete', '미완료', '未完成'],
+  tipsTitle: ['覚えておきたいこと', 'Key points', '기억할 점', '要点'],
+  finishedWaiting: ['他の参加者の終了を待っています（{n}/{m}人が終了）', 'Waiting for others to finish ({n}/{m} done)', '다른 참가자의 종료를 기다리는 중({n}/{m}명 종료)', '等待其他参与者完成（{n}/{m}人已完成）'],
+  playAgain: ['もう一度', 'Play again', '다시 하기', '再玩一次'],
+  endSession: ['セッションを終了', 'End session', '세션 종료', '结束会话'],
+  sessionEnded: ['主催者がセッションを終了しました。', 'The host ended the session.', '호스트가 세션을 종료했습니다.', '主持人已结束会话。'],
+  teamAvg: ['平均', 'Average', '평균', '平均'],
+  teamTotal: ['合計', 'Total', '합계', '总分'],
+  quit: ['中止', 'Quit', '중지', '中止'],
+  sound: ['音', 'Sound', '소리', '声音'],
+  axis_priority: ['優先順位', 'Prioritization', '우선순위', '优先排序'],
+  axis_time: ['時間', 'Timeliness', '시간', '时效'],
+  axis_safety: ['安全確認', 'Safety', '안전 확인', '安全核对'],
+  axis_resume: ['中断からの再開', 'Resumption', '중단 후 재개', '中断后恢复'],
+  axis_comm: ['委任・報告', 'Delegation', '위임·보고', '委托与汇报'],
+  fb_badPriority: ['優先度の低い課題を先に選んだ回数：{n}', 'Lower-priority task chosen first: {n}', '우선순위가 낮은 과제를 먼저 고른 횟수: {n}', '先选低优先级任务的次数：{n}'],
+  fb_noMemo: ['メモを残さずに中断した回数：{n}', 'Interrupted without a note: {n}', '메모 없이 중단한 횟수: {n}', '未备注就中断的次数：{n}'],
+  fb_badDelegate: ['任せるべきでない課題を任せようとした回数：{n}', 'Tried to delegate a task that needs you: {n}', '맡기면 안 되는 과제를 맡기려 한 횟수: {n}', '试图委托不应委托任务的次数：{n}'],
+  fb_checkWrong: ['安全確認の誤り：{n}', 'Safety check errors: {n}', '안전 확인 오류: {n}', '安全核对错误：{n}'],
+  fb_expired: ['期限切れになった課題：{n}', 'Missed tasks: {n}', '기한 초과 과제: {n}', '超时任务：{n}'],
+  fb_perfect: ['大きな失点はありませんでした。次はレベルを上げてみましょう。', 'No major deductions. Try a higher level next.', '큰 감점이 없었습니다. 다음에는 레벨을 올려 보세요.', '没有明显失分。下次试试更高难度。'],
+  sessionNotFound: ['セッションが見つかりません。コードを確認してください。', 'Session not found. Check the code.', '세션을 찾을 수 없습니다. 코드를 확인하세요.', '找不到会话，请检查代码。'],
+  alreadyStarted: ['このセッションはすでに始まっています。', 'This session has already started.', '이 세션은 이미 시작되었습니다.', '该会话已经开始。'],
+  errorGeneric: ['処理に失敗しました', 'Something failed', '처리에 실패했습니다', '操作失败'],
+  tooMany: ['試行回数が多すぎます。しばらく待ってから再試行してください。', 'Too many attempts. Wait a while and try again.', '시도 횟수가 너무 많습니다. 잠시 후 다시 시도하세요.', '尝试次数过多，请稍后再试。'],
+  loginCancelled: ['ログインが中断されました', 'Sign-in was cancelled', '로그인이 취소되었습니다', '登录已取消'],
+  permDenied: ['権限がありません。Firestoreのルールを確認してください。', 'Permission denied. Check the Firestore rules.', '권한이 없습니다. Firestore 규칙을 확인하세요.', '没有权限，请检查Firestore规则。'],
+  unauthDomain: ['このドメインはログインが許可されていません。Firebaseの承認済みドメインに追加してください。', 'This domain is not authorized. Add it to Firebase authorized domains.', '이 도메인은 로그인이 허용되지 않았습니다. Firebase 승인된 도메인에 추가하세요.', '此域名未获授权，请添加到Firebase授权域名。'],
+  adminLogin: ['管理者ログイン', 'Admin sign-in', '관리자 로그인', '管理员登录'],
+  email: ['メールアドレス', 'Email', '이메일', '电子邮箱'],
+  password: ['パスワード', 'Password', '비밀번호', '密码'],
+  signIn: ['ログイン', 'Sign in', '로그인', '登录'],
+  orGoogle: ['Googleアカウントの管理者はこちら', 'Admins with a Google account', 'Google 계정 관리자는 여기', 'Google账号管理员请点此'],
+  notAdmin: ['このアカウントは管理者として登録されていません。下のUIDをFirestoreの admins コレクションに登録すると管理者になります。', 'This account is not registered as an admin. Add the UID below to the admins collection in Firestore.', '이 계정은 관리자로 등록되어 있지 않습니다. 아래 UID를 Firestore admins 컬렉션에 등록하세요.', '此账号未注册为管理员。请将下方UID添加到Firestore的admins集合。'],
+  mustChange: ['初期パスワードを変更してください', 'Change your initial password', '초기 비밀번호를 변경하세요', '请修改初始密码'],
+  mustChangeDesc: ['変更するまで管理機能は使えません。変更日時は監査ログに記録されます。', 'Admin features stay locked until you change it. The change is recorded in the audit log.', '변경할 때까지 관리 기능을 사용할 수 없습니다. 변경 일시는 감사 로그에 기록됩니다.', '修改前无法使用管理功能。修改时间将记入审计日志。'],
+  currentPw: ['現在のパスワード', 'Current password', '현재 비밀번호', '当前密码'],
+  newPw: ['新しいパスワード（8文字以上）', 'New password (8+ characters)', '새 비밀번호(8자 이상)', '新密码（至少8位）'],
+  confirmPw: ['新しいパスワード（確認）', 'Confirm new password', '새 비밀번호 확인', '确认新密码'],
+  changePw: ['パスワードを変更', 'Change password', '비밀번호 변경', '修改密码'],
+  pwChanged: ['パスワードを変更し、監査ログに記録しました', 'Password changed and recorded in the audit log', '비밀번호를 변경하고 감사 로그에 기록했습니다', '密码已修改并记入审计日志'],
+  pwMismatch: ['新しいパスワードが一致しません', 'New passwords do not match', '새 비밀번호가 일치하지 않습니다', '两次输入的新密码不一致'],
+  pwShort: ['パスワードは8文字以上にしてください', 'Use at least 8 characters', '비밀번호는 8자 이상이어야 합니다', '密码至少需要8位'],
+  pwSame: ['現在と異なるパスワードにしてください', 'Choose a password different from the current one', '현재와 다른 비밀번호를 사용하세요', '请使用与当前不同的密码'],
+  pwWrong: ['メールアドレスまたはパスワードが違います', 'Wrong email or password', '이메일 또는 비밀번호가 틀렸습니다', '邮箱或密码错误'],
+  tab_scenarios: ['シナリオ', 'Scenarios', '시나리오', '场景'],
+  tab_videos: ['動画', 'Videos', '동영상', '视频'],
+  tab_logs: ['プレイログ', 'Play logs', '플레이 로그', '游戏记录'],
+  tab_audit: ['監査ログ', 'Audit log', '감사 로그', '审计日志'],
+  tab_password: ['パスワード', 'Password', '비밀번호', '密码'],
+  newScenario: ['シナリオを追加', 'Add scenario', '시나리오 추가', '添加场景'],
+  pickScenario: ['左の一覧から編集するシナリオを選んでください。', 'Choose a scenario to edit from the list.', '왼쪽 목록에서 편집할 시나리오를 선택하세요.', '请从左侧列表选择要编辑的场景。'],
+  limitSec: ['制限時間（秒）', 'Time limit (sec)', '제한 시간(초)', '时间限制（秒）'],
+  hideScenario: ['プレイ候補から外す', 'Hide from play', '플레이 후보에서 제외', '不参与游戏'],
+  hiddenLabel: ['非表示', 'Hidden', '숨김', '已隐藏'],
+  titleF: ['タイトル', 'Title', '제목', '标题'],
+  introF: ['導入文', 'Intro', '도입문', '导语'],
+  tasksJson: ['課題（JSON）', 'Tasks (JSON)', '과제(JSON)', '任务（JSON）'],
+  taskHelpTitle: ['課題の書き方', 'How to write tasks', '과제 작성 방법', '任务写法'],
+  taskHelp: ['id：課題ID、t：各言語の文、p：優先度（1生命 2安全 3苦痛 4その他）、dur：対応にかかる秒数、dl：到着から期限までの秒数、at：到着時刻（秒）、del：同僚に任せてよいか（true/false）、chk：安全確認のキーまたはnull、lv：出現する最低レベル（0学生〜3）。', 'id: task ID; t: text per language; p: priority (1 life, 2 safety, 3 distress, 4 other); dur: seconds to complete; dl: seconds from arrival to deadline; at: arrival time (sec); del: can be delegated (true/false); chk: safety check key or null; lv: minimum level (0 student to 3).', 'id: 과제 ID, t: 언어별 문장, p: 우선순위(1생명 2안전 3고통 4기타), dur: 대응 소요 초, dl: 도착부터 기한까지 초, at: 도착 시각(초), del: 동료에게 맡겨도 되는지(true/false), chk: 안전 확인 키 또는 null, lv: 출현 최저 레벨(0학생~3).', 'id：任务ID；t：各语言文本；p：优先级（1生命 2安全 3痛苦 4其他）；dur：处理所需秒数；dl：到达至截止的秒数；at：到达时间（秒）；del：可否委托（true/false）；chk：安全核对键或null；lv：最低出现级别（0学生～3）。'],
+  save: ['保存する', 'Save', '저장', '保存'],
+  saved: ['保存しました', 'Saved', '저장했습니다', '已保存'],
+  resetScenario: ['既定に戻す', 'Restore default', '기본값으로 되돌리기', '恢复默认'],
+  deleteScenario: ['削除する', 'Delete', '삭제', '删除'],
+  confirmDelete: ['本当に実行しますか？', 'Are you sure?', '정말 실행하시겠습니까?', '确定要执行吗？'],
+  src_builtin: ['既定', 'Default', '기본', '默认'],
+  src_override: ['既定を編集', 'Edited default', '기본 편집', '已编辑默认'],
+  src_custom: ['追加', 'Added', '추가', '新增'],
+  videoHelp: ['YouTube・Vimeo・Googleドライブの共有リンク、またはmp4などの動画URLを登録できます。登録した動画はFirestoreに保存され、アプリを開き直しても残ります。', 'Add a YouTube, Vimeo or Google Drive share link, or a direct video URL such as mp4. Videos are stored in Firestore and remain after the app restarts.', 'YouTube·Vimeo·Google 드라이브 공유 링크 또는 mp4 등 동영상 URL을 등록할 수 있습니다. 등록한 동영상은 Firestore에 저장되어 앱을 다시 열어도 유지됩니다.', '可添加YouTube、Vimeo、Google云端硬盘分享链接或mp4等视频网址。视频保存在Firestore中，重新打开应用后依然保留。'],
+  uploadVideo: ['ファイルをアップロード', 'Upload a file', '파일 업로드', '上传文件'],
+  removeVideo: ['外す', 'Remove', '제거', '移除'],
+  preview: ['プレビュー', 'Preview', '미리보기', '预览'],
+  uploading: ['アップロード中…', 'Uploading…', '업로드 중…', '上传中…'],
+  fileTooLarge: ['200MB以下のファイルにしてください', 'Use a file under 200 MB', '200MB 이하 파일을 사용하세요', '请使用200MB以下的文件'],
+  badUrl: ['https:// から始まるURLを入力してください', 'Enter a URL starting with https://', 'https://로 시작하는 URL을 입력하세요', '请输入以https://开头的网址'],
+  loading: ['読み込み中…', 'Loading…', '불러오는 중…', '加载中…'],
+  exportCsv: ['CSVで書き出す', 'Export CSV', 'CSV 내보내기', '导出CSV'],
+  colDate: ['日時', 'Date', '일시', '时间'],
+  colAction: ['操作', 'Action', '작업', '操作'],
+  colDetail: ['詳細', 'Detail', '상세', '详情'],
+  badId: ['IDは半角英小文字・数字・ハイフンで2〜40文字にしてください', 'ID must be 2–40 lowercase letters, digits or hyphens', 'ID는 영문 소문자·숫자·하이픈 2~40자로 입력하세요', 'ID须为2–40位小写字母、数字或连字符'],
+  idExists: ['このIDはすでに使われています', 'This ID is already in use', '이미 사용 중인 ID입니다', '该ID已被使用'],
+  jsonError: ['課題のJSONを読み取れません', 'Cannot read the tasks JSON', '과제 JSON을 읽을 수 없습니다', '无法读取任务JSON'],
+  needTitle: ['日本語か英語のタイトルを入力してください', 'Enter a Japanese or English title', '일본어 또는 영어 제목을 입력하세요', '请输入日语或英语标题'],
+  act_admin_login: ['管理者ログイン', 'Admin sign-in', '관리자 로그인', '管理员登录'],
+  act_initial_password_changed: ['初期パスワード変更', 'Initial password changed', '초기 비밀번호 변경', '修改初始密码'],
+  act_password_changed: ['パスワード変更', 'Password changed', '비밀번호 변경', '修改密码'],
+  act_scenario_saved: ['シナリオ保存', 'Scenario saved', '시나리오 저장', '保存场景'],
+  act_scenario_deleted: ['シナリオ削除', 'Scenario deleted', '시나리오 삭제', '删除场景'],
+  act_video_saved: ['動画登録', 'Video saved', '동영상 등록', '添加视频'],
+  act_video_removed: ['動画削除', 'Video removed', '동영상 제거', '移除视频'],
+};
+
+// ===== engine =====
+// 多重課題ゲームのロジック。画面描画には依存しません。
+// スコアの5軸：priority 優先順位 / time 時間 / safety 安全確認 / resume 再開 / comm 委任・報告
+
+const LEVEL_MULT = [1.0, 1.1, 1.2, 1.3];   // 経験レベルによる得点係数
+const ARRIVE_F = [1.15, 1.0, 0.85, 0.72];           // レベルが上がるほど呼び出しが早く来る
+const DEADLINE_F = [1.3, 1.0, 0.9, 0.8];            // レベルが上がるほど期限が短い
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+class Game {
+  constructor({ scenario, level = 1, extraStaff = 0, onChange, onTick, onEvent, onEnd }) {
+    this.sc = scenario;
+    this.level = Math.max(0, Math.min(3, level | 0));
+    this.onChange = onChange || (() => {});
+    this.onTick = onTick || (() => {});
+    this.onEvent = onEvent || (() => {});
+    this.onEnd = onEnd || (() => {});
+    const fa = ARRIVE_F[this.level], fd = DEADLINE_F[this.level];
+    this.tasks = (scenario.tasks || [])
+      .filter(d => (d.lv || 0) <= this.level)
+      .map(d => ({
+        def: d, id: String(d.id), p: d.p, state: 'future', outcome: null,
+        arriveT: d.at * fa, window: d.dl * fd, deadlineT: d.at * fa + d.dl * fd,
+        work: d.dur, progress: 0, memo: false, checked: false, prioScored: false, pauses: 0,
+      }));
+    this.staff = Array(1 + extraStaff).fill(0);   // 同僚が空く時刻
+    this.limit = scenario.limit || 150;
+    this.t = 0;
+    this.active = null;
+    this.running = false;
+    this.finished = false;
+    this.axes = { priority: 0, time: 0, safety: 0, resume: 0, comm: 0 };
+    this.stats = { badPriority: 0, noMemo: 0, badDelegate: 0, checkWrong: 0, expired: 0, done: 0, delegated: 0 };
+    this.log = [];
+    this.maxPossible = this.tasks.reduce((s, x) => s + 8 + 20 + (x.def.chk ? 8 : 0), 0) || 1;
+  }
+
+  find(id) { return this.tasks.find(x => x.id === String(id)); }
+  ev(type, x) { const e = { type, t: +this.t.toFixed(1), id: x ? x.id : null }; this.log.push(e); this.onEvent({ ...e, task: x }); }
+  changed() { this.onChange(this); }
+
+  start() {
+    if (this.running || this.finished) return;
+    this.running = true;
+    let last = now();
+    this.timer = setInterval(() => {
+      const n = now(); const dt = Math.min(1, (n - last) / 1000); last = n;
+      this.tick(dt);
+    }, 200);
+  }
+
+  stop() { clearInterval(this.timer); this.running = false; }
+
+  tick(dt) {
+    if (!this.running) return;
+    this.t += dt;
+    let ch = false;
+    for (const x of this.tasks) {
+      if (x.state === 'future' && this.t >= x.arriveT) { x.state = 'pending'; ch = true; this.ev('arrive', x); }
+      else if (x.state === 'pending' && this.t >= x.deadlineT) { this.miss(x); ch = true; }
+      else if (x.state === 'delegated' && this.t >= x.doneT) {
+        x.state = 'done'; x.outcome = 'delegated';
+        this.axes.time += x.doneT <= x.deadlineT ? 10 : 2; ch = true;
+      }
     }
-  }, true);
-  setTimeout(function () {
-    var v = document.getElementById('view');
-    if (v && v.querySelector('.boot')) v.querySelector('.boot').textContent =
-      'Loading が続く場合：js/app.js が読み込めていません。F12 のコンソールでエラーを確認してください。';
-  }, 6000);
+    const a = this.active;
+    if (a) { a.progress += dt; if (a.progress >= a.work) { this.complete(a); ch = true; } }
+    if (ch) this.changed();
+    this.onTick(this);
+    const allClosed = this.tasks.every(x => x.state === 'done' || x.state === 'missed');
+    if (this.t >= this.limit || allClosed) this.finish();
+  }
+
+  // 着手（新規・再開）の判断。優先順位を評価し、安全確認が必要なら 'check' を返す
+  requestStart(x) {
+    if (!this.running || !x || x === this.active || !(x.state === 'pending' || x.state === 'paused')) return 'no';
+    this.evalPriority(x);
+    if (x.def.chk && !x.checked) return 'check';
+    this.begin(x);
+    return 'ok';
+  }
+
+  evalPriority(x) {
+    const others = this.tasks.filter(y => y !== x && (y.state === 'pending' || y.state === 'paused' || y.state === 'active'));
+    const best = Math.min(x.p, ...others.map(y => y.p));
+    if (x.p <= best) {
+      if (!x.prioScored) { this.axes.priority += 8; x.prioScored = true; }
+      return true;
+    }
+    this.axes.priority -= 4 * (x.p - best);
+    this.stats.badPriority++;
+    this.ev('badPriority', x);
+    return false;
+  }
+
+  answerCheck(x, ok) {
+    if (!x || x.checked) return;
+    x.checked = true;
+    if (ok) { this.axes.safety += 8; this.ev('checkOk', x); }
+    else { this.axes.safety -= 10; this.stats.checkWrong++; this.ev('checkWrong', x); }
+    if (this.running && x !== this.active && (x.state === 'pending' || x.state === 'paused')) this.begin(x);
+    else this.changed();
+  }
+
+  begin(x) {
+    const a = this.active;
+    if (a && a !== x) {
+      a.state = 'paused'; a.pauses++;
+      if (a.memo) this.ev('pauseMemo', a);
+      else { this.stats.noMemo++; this.ev('pauseNoMemo', a); }
+    }
+    if (x.state === 'paused') {
+      if (x.memo) { this.axes.resume += 4; this.ev('resumeOk', x); }
+      else { this.axes.resume -= 6; this.ev('resumeSlip', x); }
+      x.memo = false;
+    }
+    x.state = 'active';
+    this.active = x;
+    this.changed();
+  }
+
+  memo() {
+    if (this.active && !this.active.memo) { this.active.memo = true; this.ev('memo', this.active); this.changed(); }
+  }
+
+  delegate(x) {
+    if (!this.running || !x || x.state !== 'pending') return 'no';
+    if (!x.def.del) {
+      this.axes.comm -= 8; this.stats.badDelegate++; this.ev('badDelegate', x);
+      return 'bad';
+    }
+    const i = this.staff.findIndex(b => b <= this.t);
+    if (i < 0) { this.ev('noStaff', x); return 'busy'; }
+    this.staff[i] = this.t + x.work * 1.3;
+    x.state = 'delegated'; x.doneT = this.staff[i];
+    this.axes.comm += 6; this.stats.delegated++;
+    this.ev('delegated', x);
+    this.changed();
+    return 'ok';
+  }
+
+  complete(x) {
+    x.state = 'done'; x.outcome = 'done';
+    if (this.active === x) this.active = null;
+    const late = this.t > x.deadlineT;
+    this.axes.time += late ? 2 : 10 + Math.round(10 * Math.max(0, x.deadlineT - this.t) / x.window);
+    this.stats.done++;
+    this.ev('done', x);
+  }
+
+  miss(x) {
+    x.state = 'missed'; x.outcome = 'missed';
+    this.axes.time -= (5 - x.p) * 6;
+    if (x.p === 1) this.axes.safety -= 10;
+    this.stats.expired++;
+    this.ev('missed', x);
+  }
+
+  total() { return Object.values(this.axes).reduce((s, v) => s + v, 0); }
+  liveScore() { return Math.round(1000 * this.total() / this.maxPossible * LEVEL_MULT[this.level]); }
+
+  finish() {
+    if (this.finished) return;
+    this.stop();
+    this.finished = true;
+    for (const x of this.tasks) {
+      if (x.state === 'pending' || x.state === 'paused' || x.state === 'active' || x.state === 'delegated') {
+        if (x.state === 'delegated') { x.outcome = 'delegated'; continue; }
+        x.outcome = 'incomplete';
+        this.axes.time -= (5 - x.p) * 3;
+      } else if (x.state === 'future') x.outcome = 'notArrived';
+    }
+    this.active = null;
+    this.changed();
+    this.onEnd(this.result());
+  }
+
+  result() {
+    const shown = this.tasks.filter(x => x.outcome !== 'notArrived');
+    return {
+      scenarioId: this.sc.id,
+      level: this.level,
+      score: this.liveScore(),
+      total: this.total(),
+      maxPossible: this.maxPossible,
+      axes: { ...this.axes },
+      axMax: {
+        priority: 8 * shown.length,
+        time: 20 * shown.length,
+        safety: 8 * shown.filter(x => x.def.chk).length,
+        resume: 0,
+        comm: 6 * Math.min(shown.filter(x => x.def.del).length, 3),
+      },
+      stats: { ...this.stats },
+      duration: Math.round(this.t),
+      tasks: shown.map(x => ({ id: x.id, p: x.p, del: !!x.def.del, text: x.def.t, outcome: x.outcome || 'incomplete', arrive: x.arriveT })),
+      log: this.log,
+    };
+  }
+}
+
+// ===== app =====
+
+const FB_VER = '10.12.2';
+let firebaseConfig = null, STORAGE_ENABLED = false, CONFIG_ERROR = '';
+const LI = { ja: 0, en: 1, ko: 2, zh: 3 };
+const L4 = ['ja', 'en', 'ko', 'zh'];
+const AXES = ['priority', 'time', 'safety', 'resume', 'comm'];
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('mts.' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('mts.' + k, JSON.stringify(v)); } catch { /* 保存できない環境では無視 */ } },
+};
+
+const S = {
+  lang: store.get('lang', (navigator.language || 'ja').slice(0, 2)),
+  profile: store.get('profile', { name: '', prof: 'ns', level: 1 }),
+  sound: store.get('sound', true),
+  fb: null, user: null, isAdmin: false, adminDoc: null,
+  scenarios: {}, meta: {},
+  session: null, players: [], unsubs: [],
+  game: null, gameCtx: null, bots: null, lastResult: null, lastPush: 0,
+  view: 'home', soloMode: 'individual', soloScenario: 'random',
+  adminTab: 'scenarios', editId: null, draft: null, logRows: [], auditRows: [],
+  pendingCode: '', autoJoinTried: false,
+};
+if (!(S.lang in LI)) S.lang = 'ja';
+
+/* ---------- 小さな道具 ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function t(k, vars) {
+  const a = T[k]; let s = a ? (a[LI[S.lang]] ?? a[0]) : k;
+  if (vars) for (const [x, y] of Object.entries(vars)) s = s.replace(`{${x}}`, y);
+  return s;
+}
+function tx(v) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return v[LI[S.lang]] || v[0] || '';
+  if (typeof v === 'object') return v[S.lang] || v.ja || v.en || '';
+  return String(v);
+}
+const par = (x) => (S.lang === 'ja' || S.lang === 'zh') ? `（${x}）` : ` (${x})`;
+function view(html) { $('#view').innerHTML = html; window.scrollTo(0, 0); }
+function toast(msg, kind = '') {
+  const d = document.createElement('div'); d.className = 'toast ' + kind; d.textContent = msg;
+  $('#toasts').appendChild(d); setTimeout(() => d.remove(), 2600);
+}
+function modal(html) {
+  closeModal();
+  const o = document.createElement('div'); o.className = 'modal';
+  o.innerHTML = `<div class="mbox" role="dialog" aria-modal="true">${html}</div>`;
+  document.body.appendChild(o); o.querySelector('button')?.focus();
+}
+function closeModal() { document.querySelector('.modal')?.remove(); }
+function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function fmtDate(ts) { const d = ts?.toDate ? ts.toDate() : null; return d ? d.toLocaleString(S.lang) : ''; }
+function errMsg(e) {
+  const c = e?.code || '';
+  if (/wrong-password|invalid-credential|invalid-login|user-not-found/.test(c)) return t('pwWrong');
+  if (/too-many-requests/.test(c)) return t('tooMany');
+  if (/weak-password/.test(c)) return t('pwShort');
+  if (/popup-closed|cancelled-popup/.test(c)) return t('loginCancelled');
+  if (/permission-denied/.test(c)) return t('permDenied');
+  if (/unauthorized-domain/.test(c)) return t('unauthDomain');
+  return t('errorGeneric') + (c ? ` (${c})` : '');
+}
+let AC;
+function beep(f = 880, d = 0.12) {
+  if (!S.sound) return;
+  try {
+    AC ||= new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.frequency.value = f; g.gain.value = 0.05; o.connect(g); g.connect(AC.destination);
+    o.start(); o.stop(AC.currentTime + d);
+  } catch { /* 音が出せない環境 */ }
+}
+
+/* ---------- Firebase ---------- */
+async function initFirebase() {
+  try {
+    if (window.FIREBASE_CONFIG_ERROR) throw new Error(window.FIREBASE_CONFIG_ERROR);
+    const m = { firebaseConfig: window.FIREBASE_CONFIG, STORAGE_ENABLED: window.STORAGE_ENABLED };
+    firebaseConfig = m.firebaseConfig; STORAGE_ENABLED = !!m.STORAGE_ENABLED;
+    if (!firebaseConfig) CONFIG_ERROR = 'index.html 冒頭の FIREBASE_CONFIG が読み取れません';
+  } catch (e) {
+    CONFIG_ERROR = '設定ブロック: ' + (e?.message || e);
+    console.error(e);
+    return;
+  }
+  const c = firebaseConfig || {};
+  if (!c.apiKey || /YOUR_/.test(c.apiKey)) return;
+  try {
+    const base = `https://www.gstatic.com/firebasejs/${FB_VER}/`;
+    const [appM, A, F] = await Promise.all([
+      import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js'),
+    ]);
+    const app = appM.initializeApp(c);
+    S.fb = { app, A, F, auth: A.getAuth(app), db: F.getFirestore(app) };
+    if (STORAGE_ENABLED) {
+      const ST = await import(base + 'firebase-storage.js');
+      S.fb.ST = ST; S.fb.storage = ST.getStorage(app);
+    }
+  } catch (e) { console.error(e); S.fb = null; CONFIG_ERROR = 'Firebase: ' + (e?.message || e); }
+}
+
+function watchAuth() {
+  const { A, F, auth, db } = S.fb;
+  A.onAuthStateChanged(auth, async (u) => {
+    S.user = u; S.isAdmin = false; S.adminDoc = null;
+    if (u) {
+      if (!S.profile.name) { S.profile.name = (u.displayName || (u.email || '').split('@')[0]).slice(0, 24); store.set('profile', S.profile); }
+      try {
+        const snap = await F.getDoc(F.doc(db, 'admins', u.uid));
+        if (snap.exists()) { S.isAdmin = true; S.adminDoc = snap.data(); }
+      } catch { /* 管理者でなければ読めない */ }
+      if (S.pendingCode && !S.autoJoinTried && !S.session && S.view === 'home') {
+        S.autoJoinTried = true; guard(() => joinSession(S.pendingCode)); return;
+      }
+    }
+    renderHeader();
+    if (S.view !== 'game') rerender();
+  });
+}
+
+async function loginGoogle() {
+  const { A, auth } = S.fb; const p = new A.GoogleAuthProvider();
+  try { await A.signInWithPopup(auth, p); }
+  catch (e) {
+    if (/popup-blocked|operation-not-supported/.test(e.code || '')) return A.signInWithRedirect(auth, p);
+    throw e;
+  }
+}
+
+async function audit(action, extra = {}) {
+  if (!S.fb || !S.user) return;
+  const { F, db } = S.fb;
+  try {
+    await F.addDoc(F.collection(db, 'auditLogs'), {
+      action, uid: S.user.uid, email: S.user.email || '', at: F.serverTimestamp(),
+      userAgent: navigator.userAgent.slice(0, 180), ...extra,
+    });
+  } catch (e) { console.warn('audit', e); }
+}
+
+async function guard(fn) { try { await fn(); } catch (e) { console.error(e); toast(errMsg(e), 'bad'); } }
+
+/* ---------- シナリオと動画 ---------- */
+function loadBuiltins() {
+  S.scenarios = {};
+  for (const s of BUILTIN_SCENARIOS) S.scenarios[s.id] = { ...s, source: 'builtin' };
+}
+async function loadRemote() {
+  if (!S.fb) return;
+  const { F, db } = S.fb;
+  try {
+    const [sc, me] = await Promise.all([F.getDocs(F.collection(db, 'scenarios')), F.getDocs(F.collection(db, 'scenarioMeta'))]);
+    loadBuiltins();
+    sc.forEach(d => { const had = !!S.scenarios[d.id]; S.scenarios[d.id] = { ...d.data(), id: d.id, source: had ? 'override' : 'custom' }; });
+    S.meta = {}; me.forEach(d => { S.meta[d.id] = d.data(); });
+  } catch (e) { console.warn('loadRemote', e); }
+}
+function playable(prof) {
+  const all = Object.values(S.scenarios).filter(s => !s.hidden && Array.isArray(s.tasks) && s.tasks.length);
+  const mine = prof ? all.filter(s => s.prof === prof) : all;
+  return (mine.length ? mine : all).sort((a, b) => a.id.localeCompare(b.id));
+}
+function pickScenario(prof, seed) { const list = playable(prof); return list[hashStr(prof + ':' + seed) % list.length]; }
+
+function videoEmbed(url) {
+  if (!url || !/^https:\/\//i.test(url)) return `<p class="muted small">${t('noVideo')}</p>`;
+  let m;
+  const frame = (src) => `<div class="video"><iframe src="${esc(src)}" title="video" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>`;
+  if ((m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,})/))) return frame(`https://www.youtube-nocookie.com/embed/${m[1]}`);
+  if ((m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/))) return frame(`https://player.vimeo.com/video/${m[1]}`);
+  if ((m = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/))) return frame(`https://drive.google.com/file/d/${m[1]}/preview`);
+  if (/\.(mp4|webm|ogg|mov)(\?|$)/i.test(url) || /firebasestorage\.googleapis\.com/.test(url)) {
+    return `<div class="video"><video controls preload="metadata" src="${esc(url)}"></video></div>`;
+  }
+  return `<p><a href="${esc(url)}" target="_blank" rel="noopener">${t('openVideo')}</a></p>`;
+}
+function briefingBlock(sc) {
+  return `<div class="brief"><h3>${esc(tx(sc.title))}</h3><p>${esc(tx(sc.intro))}</p>${videoEmbed(S.meta[sc.id]?.videoUrl)}</div>`;
+}
+
+/* ---------- 画面の切り替え ---------- */
+function go(v) {
+  S.view = v;
+  if (v === 'admin') { if (location.hash !== '#admin') history.replaceState(null, '', '#admin'); }
+  else if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  rerender();
+}
+function rerender() {
+  closeModal();
+  ({ home: renderHome, solo: renderSolo, lobby: () => renderLobby(true), game: renderGameShell, result: renderResult, admin: renderAdmin })[S.view]?.();
+}
+function setLang(l) {
+  S.lang = l; store.set('lang', l); document.documentElement.lang = l;
+  document.title = t('appTitle'); renderHeader(); rerender();
+}
+
+function renderHeader() {
+  const auth = S.fb ? (S.user
+    ? `<span class="who">${esc(S.user.displayName || S.user.email || '')}</span><button class="btn ghost sm" data-act="logout">${t('logout')}</button>`
+    : `<button class="btn sm" data-act="login">${t('login')}</button>`) : '';
+  $('#hdr').innerHTML = `
+    <a class="brand" href="./" data-act="home">${esc(t('appTitle'))}</a>
+    <div class="hdr-r">
+      <label class="sr" for="langSel">Language</label>
+      <select id="langSel">${LANGS.map(([c, n]) => `<option value="${c}" ${c === S.lang ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      ${auth}
+    </div>`;
+}
+
+/* ---------- ホーム ---------- */
+function renderHome() {
+  const p = S.profile;
+  const multi = S.fb
+    ? (S.user
+      ? `<button class="btn" data-act="createSession">${t('createSession')}</button>
+         <div class="joinrow"><label class="sr" for="joinCode">${t('sessionCode')}</label>
+           <input id="joinCode" placeholder="${t('sessionCode')}" maxlength="6" value="${esc(S.pendingCode)}" autocapitalize="characters" autocomplete="off">
+           <button class="btn ghost" data-act="joinSession">${t('join')}</button></div>`
+      : `<button class="btn" data-act="login">${t('login')}</button><p class="muted small">${t('needLogin')}</p>`)
+    : `<p class="muted small">${t('localMode')}</p>`;
+  view(`
+  <section class="hero">
+    <h1>${esc(t('appTitle'))}</h1>
+    <p class="lead">${esc(t('tagline'))}</p>
+    <div class="panel-demo" aria-hidden="true">
+      ${[[1, 'demo1'], [2, 'demo2'], [4, 'demo3']].map(([pr, k], i) => `<div class="demo-call" style="--i:${i}"><span class="lamp p${pr}"></span><span>${esc(t(k))}</span></div>`).join('')}
+    </div>
+  </section>
+  <section class="card you">
+    <h2>${t('you')}</h2>
+    <div class="grid3">
+      <label>${t('yourName')}<input id="pName" value="${esc(p.name)}" maxlength="24" autocomplete="nickname"></label>
+      <label>${t('profession')}<select id="pProf">${Object.entries(PROFESSIONS).map(([k, v]) => `<option value="${k}" ${k === p.prof ? 'selected' : ''}>${esc(tx(v))}</option>`).join('')}</select></label>
+      <label>${t('level')}<select id="pLevel">${LEVELS.map((v, i) => `<option value="${i}" ${i === +p.level ? 'selected' : ''}>${esc(tx(v))}</option>`).join('')}</select></label>
+    </div>
+  </section>
+  <section class="actions">
+    <div class="act"><h2>${t('soloPlay')}</h2><p>${t('soloDesc')}</p><button class="btn" data-act="soloSetup">${t('soloPlay')}</button></div>
+    <div class="act"><h2>${t('multiTitle')}</h2><p>${t('multiDesc')}</p>${multi}</div>
+  </section>
+  ${CONFIG_ERROR ? `<section class="card cfgerr"><strong>Firebase設定エラー</strong><p class="small">${esc(CONFIG_ERROR)}</p><p class="small">index.html 冒頭の「ここから設定」〜「ここまで設定」の中を確認してください。ひとりで練習はこのまま使えます。</p></section>` : ''}
+  <footer class="foot"><p>${t('evidenceNote')}</p><a href="#admin" data-act="admin">${t('admin')}</a></footer>`);
+}
+function saveProfile() {
+  const n = $('#pName'), pr = $('#pProf'), lv = $('#pLevel');
+  if (!n) return;
+  const prof = pr.value;
+  if (prof !== S.profile.prof) S.soloScenario = 'random';
+  S.profile = { name: n.value.trim().slice(0, 24), prof, level: +lv.value };
+  store.set('profile', S.profile);
+}
+function myName() { return S.profile.name || (S.user?.displayName || '').slice(0, 24) || 'Player'; }
+
+/* ---------- ひとりで練習 ---------- */
+function renderSolo() {
+  const list = playable(S.profile.prof);
+  const sc = S.soloScenario !== 'random' ? S.scenarios[S.soloScenario] : null;
+  view(`<section class="card">
+    <h2>${t('soloPlay')}</h2>
+    <fieldset class="seg"><legend>${t('mode')}</legend>
+      <label><input type="radio" name="soloMode" value="individual" ${S.soloMode === 'individual' ? 'checked' : ''}> ${t('modeIndividual')}</label>
+      <label><input type="radio" name="soloMode" value="team" ${S.soloMode === 'team' ? 'checked' : ''}> ${t('modeTeam')}</label>
+    </fieldset>
+    <p class="muted">${S.soloMode === 'team' ? t('soloTeamDesc') : t('soloIndDesc')}</p>
+    <label class="w-md">${t('scenario')}<select id="soloSc"><option value="random">${t('random')}</option>${list.map(s => `<option value="${esc(s.id)}" ${s.id === S.soloScenario ? 'selected' : ''}>${esc(tx(s.title))}</option>`).join('')}</select></label>
+    ${sc ? briefingBlock(sc) : ''}
+    <div class="row"><button class="btn big" data-act="soloStart">${t('start')}</button><button class="btn ghost" data-act="home">${t('backHome')}</button></div>
+  </section>`);
+}
+function makeBots(mode, mult) {
+  const n = mode === 'team' ? 5 : 3;
+  return Array.from({ length: n }, (_, i) => ({
+    name: `NPC ${i + 1}`, final: Math.round(1000 * (0.5 + Math.random() * 0.35) * mult),
+    score: 0, team: mode === 'team' ? (i < 2 ? 'A' : 'B') : null, npc: true, finished: false,
+  }));
+}
+function soloStart() {
+  const list = playable(S.profile.prof);
+  const sc = (S.soloScenario !== 'random' && S.scenarios[S.soloScenario]) || list[Math.floor(Math.random() * list.length)];
+  S.bots = makeBots(S.soloMode, LEVEL_MULT[+S.profile.level]);
+  startGame(sc, { mode: S.soloMode, extraStaff: S.soloMode === 'team' ? 1 : 0 });
+}
+
+/* ---------- セッション（オンライン対戦） ---------- */
+function joinLink(code) { return `${location.origin}${location.pathname}?s=${code}`; }
+function unsubAll() { S.unsubs.forEach(u => { try { u(); } catch { /* 無視 */ } }); S.unsubs = []; }
+
+async function createSession() {
+  const { F, db } = S.fb;
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code = Array.from({ length: 6 }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join('');
+    if (!(await F.getDoc(F.doc(db, 'sessions', code))).exists()) break;
+  }
+  await F.setDoc(F.doc(db, 'sessions', code), {
+    hostUid: S.user.uid, hostName: myName(), mode: 'individual', status: 'lobby',
+    seed: Math.floor(Math.random() * 1e9), createdAt: F.serverTimestamp(),
+  });
+  await joinSession(code);
+}
+
+async function joinSession(raw) {
+  const code = String(raw || '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(code)) { toast(t('sessionNotFound'), 'bad'); return; }
+  const { F, db } = S.fb;
+  const snap = await F.getDoc(F.doc(db, 'sessions', code));
+  if (!snap.exists()) { toast(t('sessionNotFound'), 'bad'); return; }
+  const s = snap.data();
+  const pref = F.doc(db, 'sessions', code, 'players', S.user.uid);
+  const mine = await F.getDoc(pref);
+  if (s.status !== 'lobby' && !mine.exists()) { toast(t('alreadyStarted'), 'bad'); return; }
+  const me = { uid: S.user.uid, name: myName(), prof: S.profile.prof, level: +S.profile.level };
+  if (!mine.exists()) await F.setDoc(pref, { ...me, team: 'A', score: 0, finished: false, joinedAt: F.serverTimestamp() });
+  else if (s.status === 'lobby') await F.updateDoc(pref, me);
+  S.session = { code, ...s }; S.players = []; S.lastResult = null; S.bots = null;
+  history.replaceState(null, '', '?s=' + code);
+  subscribe(code);
+  if (s.status === 'playing') { startMulti(); return; }
+  S.view = 'lobby'; renderLobby(true);
+}
+
+function subscribe(code) {
+  unsubAll();
+  const { F, db } = S.fb;
+  S.unsubs.push(F.onSnapshot(F.doc(db, 'sessions', code), snap => {
+    if (!snap.exists()) { leaveLocal(); go('home'); return; }
+    const prev = S.session?.status;
+    S.session = { code, ...snap.data() };
+    if (prev === 'lobby' && S.session.status === 'playing' && S.view === 'lobby') startMulti();
+    else if (S.view === 'lobby') renderLobby(false);
+    else if (S.view === 'result' && S.session.status === 'finished') { toast(t('sessionEnded')); updateResultRank(); }
+  }));
+  S.unsubs.push(F.onSnapshot(F.collection(db, 'sessions', code, 'players'), q => {
+    S.players = q.docs.map(d => d.data());
+    if (S.view === 'lobby') renderLobby(false);
+    else if (S.view === 'result') updateResultRank();
+  }));
+}
+
+function renderLobby(full) {
+  const s = S.session; if (!s) return go('home');
+  const isHost = s.hostUid === S.user?.uid;
+  if (full || !$('#lobbyDyn')) {
+    const sc = pickScenario(S.profile.prof, s.seed);
+    view(`<section class="lobby">
+      <div class="code-box">
+        <p class="muted small">${t('sessionCode')}</p>
+        <p class="code">${esc(s.code)}</p>
+        <div id="qr" aria-hidden="true"></div>
+        <button class="btn ghost sm" data-act="copyLink">${t('shareLink')}</button>
+      </div>
+      <div>
+        <div id="lobbyDyn"></div>
+        <h2>${t('yourScenario')}</h2>${sc ? briefingBlock(sc) : ''}
+      </div></section>`);
+    drawQR(joinLink(s.code));
+  }
+  const me = S.players.find(p => p.uid === S.user?.uid);
+  $('#lobbyDyn').innerHTML = `
+    <fieldset class="seg" ${isHost ? '' : 'disabled'}><legend>${t('mode')}</legend>
+      <label><input type="radio" name="sesMode" value="individual" ${s.mode === 'individual' ? 'checked' : ''}> ${t('modeIndividual')}</label>
+      <label><input type="radio" name="sesMode" value="team" ${s.mode === 'team' ? 'checked' : ''}> ${t('modeTeam')}</label>
+    </fieldset>
+    ${s.mode === 'team' && me ? `<fieldset class="seg"><legend>${t('yourTeam')}</legend>${['A', 'B'].map(k => `<label><input type="radio" name="myTeam" value="${k}" ${me.team === k ? 'checked' : ''}> ${t('team' + k)}</label>`).join('')}</fieldset>` : ''}
+    <h2>${t('players')} (${S.players.length})</h2>
+    <ul class="plist">${S.players.map(p => `<li><strong>${esc(p.name)}</strong><span class="muted">${esc(tx(PROFESSIONS[p.prof]))}</span><span class="muted">${esc(tx(LEVELS[p.level]))}</span>${s.mode === 'team' ? `<span class="tb t${esc(p.team)}">${esc(p.team)}</span>` : ''}${p.uid === s.hostUid ? `<span class="tag">${t('host')}</span>` : ''}</li>`).join('')}</ul>
+    <div class="row">${isHost ? `<button class="btn big" data-act="hostStart" ${S.players.length ? '' : 'disabled'}>${t('start')}</button>` : `<p class="muted">${t('waitingHost')}</p>`}
+      <button class="btn ghost" data-act="leave">${t('leave')}</button></div>`;
+}
+function drawQR(text) {
+  const el = $('#qr'); if (!el || !window.QRCode) return;
+  el.innerHTML = '';
+  new window.QRCode(el, { text, width: 144, height: 144, correctLevel: window.QRCode.CorrectLevel.M });
+}
+function startMulti() {
+  const sc = pickScenario(S.profile.prof, S.session.seed);
+  S.bots = null;
+  startGame(sc, { mode: S.session.mode, extraStaff: 0 });
+}
+function pushScore(final) {
+  if (!S.session || !S.fb || !S.user) return;
+  const n = Date.now();
+  if (!final && n - S.lastPush < 5000) return;
+  S.lastPush = n;
+  const { F, db } = S.fb;
+  const data = final ? { score: final.score, axes: final.axes, finished: true } : { score: S.game.liveScore() };
+  F.updateDoc(F.doc(db, 'sessions', S.session.code, 'players', S.user.uid), data).catch(() => {});
+}
+function leaveLocal() {
+  unsubAll();
+  S.session = null; S.players = [];
+  history.replaceState(null, '', location.pathname);
+}
+async function leaveSession() {
+  if (S.session && S.fb && S.user && S.view === 'lobby') {
+    const { F, db } = S.fb;
+    await F.deleteDoc(F.doc(db, 'sessions', S.session.code, 'players', S.user.uid)).catch(() => {});
+  }
+  leaveLocal();
+}
+
+/* ---------- ゲーム ---------- */
+function startGame(sc, opts) {
+  if (S.game) S.game.stop();
+  S.lastResult = null; S.lastPush = 0;
+  S.gameCtx = { sc, ...opts };
+  S.game = new Game({
+    scenario: sc, level: +S.profile.level, extraStaff: opts.extraStaff || 0,
+    onChange: () => drawGame(),
+    onTick: () => tickUI(),
+    onEvent: (e) => gameEvent(e),
+    onEnd: (r) => endGame(r),
+  });
+  S.view = 'game';
+  renderGameShell();
+  countdown(3, () => { beep(660, 0.15); S.game.start(); });
+}
+function countdown(n, cb) {
+  const o = document.createElement('div'); o.className = 'count'; o.setAttribute('aria-live', 'assertive');
+  document.body.appendChild(o);
+  const step = () => { if (n <= 0) { o.remove(); cb(); return; } o.textContent = n; n--; setTimeout(step, 800); };
+  step();
+}
+function renderGameShell() {
+  const { sc, mode } = S.gameCtx || {};
+  if (!sc) return go('home');
+  view(`<section class="game">
+    <div class="gbar">
+      <div class="gtitle"><strong>${esc(tx(sc.title))}</strong>
+        <span class="meta"><span>${esc(tx(PROFESSIONS[S.profile.prof]))}</span><span>${esc(tx(LEVELS[S.profile.level]))}</span><span>${t(mode === 'team' ? 'modeTeam' : 'modeIndividual')}</span></span></div>
+      <div class="gstat"><span class="small">${t('timeLeft')}</span><span id="gTime" class="num">--</span></div>
+      <div class="gstat"><span class="small">${t('score')}</span><span id="gScore" class="num">0</span></div>
+      <div class="gtools">
+        <label class="snd"><input type="checkbox" id="sound" ${S.sound ? 'checked' : ''}> ${t('sound')}</label>
+        <button class="btn ghost sm light" data-act="quitGame">${t('quit')}</button>
+      </div>
+    </div>
+    ${+S.profile.level === 0 ? `<p class="hint">${t('hintPriority')}</p>` : ''}
+    <div class="ggrid">
+      <div class="calls"><h2>${t('calls')}</h2><div id="gCalls"></div></div>
+      <div class="side">
+        <h2>${t('working')}</h2><div id="gActive"></div>
+        <h2>${t('paused')}</h2><div id="gPaused"></div>
+        <h2>${t('staff')}</h2><div id="gStaff"></div>
+        <h2>${t('ranking')}</h2><div id="gRank"></div>
+      </div>
+    </div></section>`);
+  drawGame();
+}
+function callCard(x, hint) {
+  const id = esc(x.id);
+  return `<article class="call" id="c-${id}">
+    <span class="lamp ${hint ? 'p' + x.p : ''}"></span>
+    <div class="cb"><p class="ct">${esc(tx(x.def.t))}</p>
+      ${hint ? `<span class="tag p${x.p}">${esc(tx(PRIORITY[x.p]))}</span>` : ''}
+      <div class="dl"><i id="dl-${id}"></i></div></div>
+    <div class="ca"><button class="btn sm" data-act="doTask" data-id="${id}">${t('doIt')}</button>
+      <button class="btn ghost sm" data-act="delegateTask" data-id="${id}">${t('delegate')}</button></div>
+  </article>`;
+}
+function drawGame() {
+  const g = S.game; if (!g || S.view !== 'game' || !$('#gCalls')) return;
+  const hint = g.level === 0;
+  const pend = g.tasks.filter(x => x.state === 'pending').sort((a, b) => a.arriveT - b.arriveT);
+  $('#gCalls').innerHTML = pend.length ? pend.map(x => callCard(x, hint)).join('') : `<p class="empty">${t('noCalls')}</p>`;
+  const a = g.active;
+  $('#gActive').innerHTML = a
+    ? `<div class="work"><p class="ct">${esc(tx(a.def.t))}</p><div class="prog"><i id="gProg"></i></div>
+        <button class="btn ghost sm" data-act="memo" ${a.memo ? 'disabled' : ''}>${a.memo ? t('memoDone') : t('memo')}</button></div>`
+    : `<p class="empty dark">${t('none')}</p>`;
+  const ps = g.tasks.filter(x => x.state === 'paused');
+  $('#gPaused').innerHTML = ps.length
+    ? ps.map(x => `<div class="pz"><p>${esc(tx(x.def.t))}</p><span class="small ${x.memo ? 'ok' : 'warn'}">${x.memo ? t('memoDone') : t('noMemoLabel')}</span>
+        <button class="btn sm" data-act="resumeTask" data-id="${esc(x.id)}">${t('resume')}</button></div>`).join('')
+    : `<p class="empty dark">${t('none')}</p>`;
+  tickUI();
+}
+function tickUI() {
+  const g = S.game; if (!g || S.view !== 'game' || !$('#gTime')) return;
+  const tl = Math.max(0, Math.ceil(g.limit - g.t));
+  $('#gTime').textContent = `${Math.floor(tl / 60)}:${String(tl % 60).padStart(2, '0')}`;
+  $('#gScore').textContent = g.liveScore();
+  if (g.active) { const el = $('#gProg'); if (el) el.style.width = Math.min(100, g.active.progress / g.active.work * 100) + '%'; }
+  for (const x of g.tasks) {
+    if (x.state !== 'pending') continue;
+    const el = document.getElementById('dl-' + x.id);
+    if (el) { const f = Math.max(0, (x.deadlineT - g.t) / x.window); el.style.width = f * 100 + '%'; el.classList.toggle('low', f < 0.3); }
+    document.getElementById('c-' + x.id)?.classList.toggle('new', g.t - x.arriveT < 3);
+  }
+  $('#gStaff').innerHTML = g.staff.map(b => `<span class="staff ${b > g.t ? 'busy' : ''}">${b > g.t ? t('staffBusy') : t('staffFree')}</span>`).join('');
+  if (S.bots) for (const b of S.bots) b.score = Math.round(b.final * Math.min(1, g.t / (g.limit * 0.85)));
+  $('#gRank').innerHTML = rankingHTML(S.gameCtx.mode);
+  pushScore();
+}
+function gameEvent(e) {
+  const name = e.task ? tx(e.task.def.t) : '';
+  const m = {
+    badPriority: [t('ev_badPriority'), 'bad'], badDelegate: [t('ev_badDelegate'), 'bad'], noStaff: [t('noStaff'), ''],
+    missed: [t('ev_missed', { task: name }), 'bad'], resumeSlip: [t('ev_resumeSlip'), 'bad'], resumeOk: [t('ev_resumeOk'), 'good'],
+    checkWrong: [t('ev_checkWrong'), 'bad'], checkOk: [t('ev_checkOk'), 'good'], delegated: [t('ev_delegated'), 'good'],
+  }[e.type];
+  if (m) toast(m[0], m[1]);
+  if (e.type === 'arrive') beep(880, 0.1);
+  if (e.type === 'missed') beep(220, 0.25);
+}
+function openCheck(x) {
+  const c = CHECKS[x.def.chk];
+  if (!c) { S.game.answerCheck(x, true); return; }
+  const opts = c.o.map((o, i) => ({ o, ok: i === 0 })).sort(() => Math.random() - 0.5);
+  modal(`<h2>${t('checkTitle')}</h2><p class="muted">${esc(tx(x.def.t))}</p><p class="q">${esc(tx(c.q))}</p>
+    <div class="opts">${opts.map(o => `<button class="opt" data-act="checkAns" data-ok="${o.ok ? 1 : 0}" data-id="${esc(x.id)}">${esc(tx(o.o))}</button>`).join('')}</div>`);
+}
+async function endGame(r) {
+  closeModal();
+  S.lastResult = r;
+  if (S.bots) S.bots.forEach(b => { b.score = b.final; b.finished = true; });
+  S.view = 'result'; renderResult();
+  if (S.session) pushScore(r);
+  if (S.fb && S.user) {
+    const { F, db } = S.fb; const sc = S.gameCtx.sc;
+    try {
+      await F.addDoc(F.collection(db, 'logs'), {
+        uid: S.user.uid, name: myName(), prof: S.profile.prof, level: +S.profile.level,
+        scenarioId: sc.id, scenarioTitle: tx(sc.title), mode: S.gameCtx.mode, sessionCode: S.session?.code || null,
+        solo: !S.session, score: r.score, total: r.total, maxPossible: r.maxPossible, axes: r.axes, stats: r.stats,
+        duration: r.duration, events: r.log.slice(0, 300), lang: S.lang, at: F.serverTimestamp(),
+      });
+    } catch (e) { console.warn('log', e); }
+  }
+}
+
+/* ---------- 順位 ---------- */
+function rankEntries() {
+  if (S.session) {
+    return S.players.map(p => ({
+      name: p.name, score: p.uid === S.user?.uid && S.game && !S.lastResult ? S.game.liveScore() : (p.score || 0),
+      team: p.team, prof: p.prof, finished: p.finished, me: p.uid === S.user?.uid,
+    }));
+  }
+  const me = { name: myName(), score: S.lastResult ? S.lastResult.score : (S.game ? S.game.liveScore() : 0), team: S.gameCtx?.mode === 'team' ? 'A' : null, prof: S.profile.prof, me: true, finished: !!S.lastResult };
+  return [me, ...(S.bots || []).map(b => ({ ...b }))];
+}
+function rankingHTML(mode) {
+  const e = rankEntries().sort((a, b) => b.score - a.score);
+  let html = '';
+  if (mode === 'team') {
+    const teams = {};
+    for (const x of e) if (x.team) (teams[x.team] ||= []).push(x);
+    const ts = Object.entries(teams).map(([k, v]) => {
+      const total = v.reduce((s, x) => s + x.score, 0);
+      return { k, total, n: v.length, avg: Math.round(total / v.length) };
+    }).sort((a, b) => b.avg - a.avg);
+    html += `<div class="teams">${ts.map(x => `<div class="team t${esc(x.k)}"><span>${t('team' + x.k)}</span><span class="tavg">${x.avg}</span><span class="small">${t('teamAvg')}${par(`${t('teamTotal')} ${x.total} / ${x.n}`)}</span></div>`).join('')}</div>`;
+  }
+  html += `<ol class="rank">${e.map(x => `<li class="${x.me ? 'me' : ''}"><span class="rn">${esc(x.name)}${x.me ? par(t('you')) : ''}</span>${x.team ? `<span class="tb t${esc(x.team)}">${esc(x.team)}</span>` : ''}${x.prof && PROFESSIONS[x.prof] ? `<span class="muted small">${esc(tx(PROFESSIONS[x.prof]))}</span>` : ''}<span class="rs">${x.score}</span></li>`).join('')}</ol>`;
+  return html;
+}
+function updateResultRank() {
+  const el = $('#finalRank'); if (!el) return;
+  el.innerHTML = rankingHTML(S.session ? S.session.mode : S.gameCtx?.mode);
+  const w = $('#waitNote');
+  if (w && S.session) {
+    const done = S.players.filter(p => p.finished).length;
+    w.textContent = done < S.players.length ? t('finishedWaiting', { n: done, m: S.players.length }) : '';
+  }
+}
+
+/* ---------- 結果 ---------- */
+function renderResult() {
+  const r = S.lastResult; const sc = S.gameCtx?.sc;
+  if (!r || !sc) return go('home');
+  const axisRow = (a) => {
+    const v = r.axes[a], mx = r.axMax[a];
+    const w = mx > 0 ? Math.min(100, Math.abs(v) / mx * 100) : Math.min(100, Math.abs(v) * 4);
+    return `<div class="ax"><span>${t('axis_' + a)}</span><div class="axbar"><i class="${v < 0 ? 'neg' : ''}" style="width:${w}%"></i></div><span class="num-s">${v > 0 ? '+' : ''}${v}${mx > 0 ? ` / ${mx}` : ''}</span></div>`;
+  };
+  const st = r.stats;
+  const fb = [['badPriority', 'fb_badPriority'], ['noMemo', 'fb_noMemo'], ['badDelegate', 'fb_badDelegate'], ['checkWrong', 'fb_checkWrong'], ['expired', 'fb_expired']]
+    .filter(([k]) => st[k] > 0).map(([k, key]) => `<li>${t(key, { n: st[k] })}</li>`);
+  const isHost = S.session && S.session.hostUid === S.user?.uid;
+  view(`<section class="result">
+    <div class="res-head">
+      <p class="muted">${esc(tx(sc.title))}</p>
+      <p class="big-score">${r.score}</p>
+      <p class="muted">${t('score')}${par(`${esc(tx(LEVELS[r.level]))} ×${LEVEL_MULT[r.level]}`)}</p>
+    </div>
+    <div class="res-grid">
+      <div>
+        <div class="axes card">${AXES.map(axisRow).join('')}</div>
+        <div class="card"><h2>${t('reviewTitle')}</h2>
+          <ul class="fb">${fb.length ? fb.join('') : `<li>${t('fb_perfect')}</li>`}</ul>
+          <div class="tablewrap"><table class="review"><thead><tr><th>${t('task')}</th><th>${t('priority')}</th><th>${t('delegable')}</th><th>${t('outcome')}</th></tr></thead>
+          <tbody>${r.tasks.slice().sort((a, b) => a.p - b.p || a.arrive - b.arrive).map(x => `<tr><td>${esc(tx(x.text))}</td><td><span class="tag p${x.p}">${esc(tx(PRIORITY[x.p]))}</span></td><td>${x.del ? '○' : '—'}</td><td class="oc-${x.outcome}">${t(x.outcome)}</td></tr>`).join('')}</tbody></table></div>
+        </div>
+        <div class="card"><h2>${t('tipsTitle')}</h2><ul>${TIPS.map(s => `<li>${esc(tx(s))}</li>`).join('')}</ul></div>
+      </div>
+      <div class="card"><h2>${t('ranking')}</h2><div id="finalRank"></div><p id="waitNote" class="muted small"></p></div>
+    </div>
+    <div class="row">
+      ${S.session ? '' : `<button class="btn" data-act="soloSetup">${t('playAgain')}</button>`}
+      ${isHost && S.session.status !== 'finished' ? `<button class="btn ghost" data-act="endSession">${t('endSession')}</button>` : ''}
+      <button class="btn ghost" data-act="exitResult">${t('backHome')}</button>
+    </div>
+  </section>`);
+  updateResultRank();
+}
+
+/* ---------- 管理者 ---------- */
+function isPasswordUser() { return !!S.user?.providerData?.some(p => p.providerId === 'password'); }
+function renderAdmin() {
+  if (!S.fb) return view(`<section class="card narrow"><h2>${t('admin')}</h2><p>${t('localMode')}</p><button class="btn ghost" data-act="home">${t('backHome')}</button></section>`);
+  if (!S.user) {
+    return view(`<section class="card narrow"><h2>${t('adminLogin')}</h2>
+      <form id="adForm" class="stack" onsubmit="return false">
+        <label>${t('email')}<input id="adEmail" type="email" autocomplete="username" required></label>
+        <label>${t('password')}<input id="adPw" type="password" autocomplete="current-password" required></label>
+        <button class="btn" data-act="adminSignIn">${t('signIn')}</button>
+      </form>
+      <p class="muted small sep">${t('orGoogle')}</p>
+      <button class="btn ghost" data-act="login">${t('login')}</button></section>`);
+  }
+  if (!S.isAdmin) {
+    return view(`<section class="card narrow"><h2>${t('admin')}</h2><p>${t('notAdmin')}</p>
+      <p class="muted small">UID: <code>${esc(S.user.uid)}</code></p>
+      <div class="row"><button class="btn ghost" data-act="logout">${t('logout')}</button><button class="btn ghost" data-act="home">${t('backHome')}</button></div></section>`);
+  }
+  if (isPasswordUser() && S.adminDoc?.mustChangePassword) {
+    return view(`<section class="card narrow"><h2>${t('mustChange')}</h2><p class="muted">${t('mustChangeDesc')}</p>${pwFormHTML()}</section>`);
+  }
+  const tabs = ['scenarios', 'videos', 'logs', 'audit', ...(isPasswordUser() ? ['password'] : [])];
+  if (!tabs.includes(S.adminTab)) S.adminTab = 'scenarios';
+  view(`<section class="admin">
+    <nav class="tabs" role="tablist">${tabs.map(k => `<button role="tab" class="tab ${S.adminTab === k ? 'on' : ''}" aria-selected="${S.adminTab === k}" data-act="adminTab" data-tab="${k}">${t('tab_' + k)}</button>`).join('')}</nav>
+    <div id="adminBody"></div></section>`);
+  ({ scenarios: adminScenarios, videos: adminVideos, logs: adminLogs, audit: adminAudit, password: () => { $('#adminBody').innerHTML = `<div class="card narrow">${pwFormHTML()}</div>`; } })[S.adminTab]();
+}
+function pwFormHTML() {
+  return `<form class="stack" onsubmit="return false">
+    <input type="email" autocomplete="username" value="${esc(S.user?.email || '')}" hidden>
+    <label>${t('currentPw')}<input id="pwCur" type="password" autocomplete="current-password"></label>
+    <label>${t('newPw')}<input id="pwNew" type="password" autocomplete="new-password" minlength="8"></label>
+    <label>${t('confirmPw')}<input id="pwNew2" type="password" autocomplete="new-password" minlength="8"></label>
+    <button class="btn" data-act="changePw">${t('changePw')}</button></form>`;
+}
+async function changePw() {
+  const cur = $('#pwCur').value, n1 = $('#pwNew').value, n2 = $('#pwNew2').value;
+  if (n1.length < 8) return toast(t('pwShort'), 'bad');
+  if (n1 !== n2) return toast(t('pwMismatch'), 'bad');
+  if (n1 === cur) return toast(t('pwSame'), 'bad');
+  const { A, F, auth, db } = S.fb; const u = auth.currentUser;
+  const initial = !!S.adminDoc?.mustChangePassword;
+  await A.reauthenticateWithCredential(u, A.EmailAuthProvider.credential(u.email, cur));
+  await A.updatePassword(u, n1);
+  await audit(initial ? 'initial_password_changed' : 'password_changed');
+  await F.updateDoc(F.doc(db, 'admins', u.uid), { mustChangePassword: false, passwordChangedAt: F.serverTimestamp() });
+  S.adminDoc = { ...S.adminDoc, mustChangePassword: false };
+  toast(t('pwChanged'), 'good');
+  S.adminTab = 'scenarios'; renderAdmin();
+}
+async function adminSignIn() {
+  const { A, F, auth, db } = S.fb;
+  const cred = await A.signInWithEmailAndPassword(auth, $('#adEmail').value.trim(), $('#adPw').value);
+  const snap = await F.getDoc(F.doc(db, 'admins', cred.user.uid));
+  S.user = cred.user;
+  if (snap.exists()) { S.isAdmin = true; S.adminDoc = snap.data(); await audit('admin_login'); }
+  renderHeader(); renderAdmin();
+}
+
+const toObj = (v) => Array.isArray(v) ? Object.fromEntries(L4.map((l, i) => [l, v[i] || ''])) : (v && typeof v === 'object' ? { ...v } : { ja: v || '' });
+function adminScenarios() {
+  const list = Object.values(S.scenarios).sort((a, b) => (a.prof + a.id).localeCompare(b.prof + b.id));
+  const cur = S.draft || (S.editId ? S.scenarios[S.editId] : null);
+  $('#adminBody').innerHTML = `<div class="split">
+    <aside class="slist"><button class="btn sm" data-act="newScenario">${t('newScenario')}</button>
+      <ul>${list.map(s => `<li><button class="linkish ${s.id === S.editId && !S.draft ? 'on' : ''}" data-act="editScenario" data-id="${esc(s.id)}">${esc(tx(s.title))}<span class="muted small">${esc(tx(PROFESSIONS[s.prof]))}／${t('src_' + s.source)}${s.hidden ? '／' + t('hiddenLabel') : ''}</span></button></li>`).join('')}</ul></aside>
+    <div class="editor">${cur ? editorHTML(cur) : `<p class="muted">${t('pickScenario')}</p>`}</div></div>`;
+}
+function editorHTML(s) {
+  const isNew = !!s._new;
+  const title = toObj(s.title), intro = toObj(s.intro);
+  const tasks = (s.tasks || []).map(x => ({ ...x, t: toObj(x.t) }));
+  return `<form id="scForm" class="stack" onsubmit="return false">
+    <div class="grid3">
+      <label>ID<input name="id" value="${esc(s.id || '')}" ${isNew ? '' : 'readonly'} required></label>
+      <label>${t('profession')}<select name="prof">${Object.entries(PROFESSIONS).map(([k, v]) => `<option value="${k}" ${k === s.prof ? 'selected' : ''}>${esc(tx(v))}</option>`).join('')}</select></label>
+      <label>${t('limitSec')}<input name="limit" type="number" min="60" max="600" value="${+s.limit || 150}"></label>
+    </div>
+    <label class="inline"><input type="checkbox" name="hidden" ${s.hidden ? 'checked' : ''}> ${t('hideScenario')}</label>
+    ${L4.map(l => `<fieldset class="lang"><legend>${LANGS.find(x => x[0] === l)[1]}</legend>
+      <label>${t('titleF')}<input name="title_${l}" value="${esc(title[l] || '')}"></label>
+      <label>${t('introF')}<textarea name="intro_${l}" rows="2">${esc(intro[l] || '')}</textarea></label></fieldset>`).join('')}
+    <label>${t('tasksJson')}<textarea name="tasks" rows="18" class="mono" spellcheck="false">${esc(JSON.stringify(tasks, null, 2))}</textarea></label>
+    <details class="help"><summary>${t('taskHelpTitle')}</summary><p>${t('taskHelp')}</p><p class="muted small">chk: ${Object.keys(CHECKS).join(', ')}</p></details>
+    <div class="row"><button class="btn" data-act="saveScenario">${t('save')}</button>
+      ${s.source === 'override' ? `<button class="btn ghost" data-act="deleteScenario" data-id="${esc(s.id)}">${t('resetScenario')}</button>` : ''}
+      ${s.source === 'custom' ? `<button class="btn danger" data-act="deleteScenario" data-id="${esc(s.id)}">${t('deleteScenario')}</button>` : ''}</div>
+  </form>`;
+}
+function validateTasks(a) {
+  if (!Array.isArray(a) || !a.length) return 'tasks = []';
+  const ids = new Set();
+  for (const [i, x] of a.entries()) {
+    const at = `#${i + 1}`;
+    if (!x || typeof x !== 'object') return at;
+    if (!x.id || ids.has(String(x.id))) return `${at} id`;
+    ids.add(String(x.id));
+    if (!x.t || !tx(x.t)) return `${at} t`;
+    if (![1, 2, 3, 4].includes(x.p)) return `${at} p`;
+    for (const k of ['dur', 'dl']) if (!(typeof x[k] === 'number' && x[k] > 0)) return `${at} ${k}`;
+    if (!(typeof x.at === 'number' && x.at >= 0)) return `${at} at`;
+    if (x.chk && !CHECKS[x.chk]) return `${at} chk`;
+    if (x.lv != null && ![0, 1, 2, 3].includes(x.lv)) return `${at} lv`;
+  }
+  return '';
+}
+async function saveScenario() {
+  const f = new FormData($('#scForm'));
+  const id = String(f.get('id') || '').trim();
+  if (!/^[a-z0-9-]{2,40}$/.test(id)) return toast(t('badId'), 'bad');
+  if (S.draft && S.scenarios[id]) return toast(t('idExists'), 'bad');
+  let tasks;
+  try { tasks = JSON.parse(f.get('tasks')); } catch { return toast(t('jsonError'), 'bad'); }
+  const err = validateTasks(tasks); if (err) return toast(`${t('jsonError')}: ${err}`, 'bad');
+  tasks = tasks.map(x => ({ id: String(x.id), t: toObj(x.t), p: x.p, dur: x.dur, dl: x.dl, at: x.at, del: !!x.del, chk: x.chk || null, lv: x.lv || 0 }));
+  const data = {
+    prof: f.get('prof'), limit: Math.max(60, Math.min(600, +f.get('limit') || 150)), hidden: f.get('hidden') === 'on',
+    title: Object.fromEntries(L4.map(l => [l, String(f.get('title_' + l) || '').trim()])),
+    intro: Object.fromEntries(L4.map(l => [l, String(f.get('intro_' + l) || '').trim()])),
+    tasks,
+  };
+  if (!data.title.ja && !data.title.en) return toast(t('needTitle'), 'bad');
+  const { F, db } = S.fb;
+  await F.setDoc(F.doc(db, 'scenarios', id), { ...data, updatedAt: F.serverTimestamp(), updatedBy: S.user.email || S.user.uid });
+  await audit('scenario_saved', { scenarioId: id });
+  S.draft = null; S.editId = id;
+  await loadRemote();
+  toast(t('saved'), 'good'); adminScenarios();
+}
+async function deleteScenario(id) {
+  if (!confirm(t('confirmDelete'))) return;
+  const { F, db } = S.fb;
+  await F.deleteDoc(F.doc(db, 'scenarios', id));
+  await audit('scenario_deleted', { scenarioId: id });
+  await loadRemote();
+  if (!S.scenarios[id]) S.editId = null;
+  toast(t('saved'), 'good'); adminScenarios();
+}
+
+function adminVideos() {
+  const list = Object.values(S.scenarios).sort((a, b) => (a.prof + a.id).localeCompare(b.prof + b.id));
+  const canUpload = STORAGE_ENABLED && S.fb.storage;
+  $('#adminBody').innerHTML = `<p class="muted">${t('videoHelp')}</p>${list.map(s => {
+    const url = S.meta[s.id]?.videoUrl || '';
+    const id = esc(s.id);
+    return `<div class="vrow"><div><strong>${esc(tx(s.title))}</strong> <span class="muted small">${esc(tx(PROFESSIONS[s.prof]))}</span></div>
+      <div class="vf"><label class="sr" for="v-${id}">URL</label><input type="url" id="v-${id}" value="${esc(url)}" placeholder="https://">
+        <button class="btn sm" data-act="saveVideo" data-id="${id}">${t('save')}</button>
+        ${url ? `<button class="btn ghost sm" data-act="removeVideo" data-id="${id}">${t('removeVideo')}</button>` : ''}
+        ${canUpload ? `<label class="file btn ghost sm">${t('uploadVideo')}<input type="file" accept="video/*" data-upload="${id}"></label>` : ''}</div>
+      ${url ? `<details data-preview="${id}"><summary>${t('preview')}</summary><div class="pv"></div></details>` : ''}</div>`;
+  }).join('')}`;
+}
+async function saveVideoUrl(id, url, action = 'video_saved') {
+  const { F, db } = S.fb;
+  await F.setDoc(F.doc(db, 'scenarioMeta', id), { videoUrl: url, updatedAt: F.serverTimestamp(), updatedBy: S.user.email || S.user.uid }, { merge: true });
+  await audit(action, { scenarioId: id, url });
+  S.meta[id] = { ...(S.meta[id] || {}), videoUrl: url };
+  toast(t('saved'), 'good'); adminVideos();
+}
+async function uploadVideo(id, file) {
+  if (!file) return;
+  if (file.size > 200 * 1024 * 1024) return toast(t('fileTooLarge'), 'bad');
+  const { ST, storage } = S.fb;
+  toast(t('uploading'));
+  const r = ST.ref(storage, `videos/${id}/${Date.now()}_${file.name.replace(/[^\w.-]/g, '_')}`);
+  await ST.uploadBytes(r, file, { contentType: file.type });
+  await saveVideoUrl(id, await ST.getDownloadURL(r));
+}
+
+async function fetchRows(col) {
+  const { F, db } = S.fb;
+  const q = await F.getDocs(F.query(F.collection(db, col), F.orderBy('at', 'desc'), F.limit(500)));
+  return q.docs.map(d => ({ _id: d.id, ...d.data() }));
+}
+async function adminLogs() {
+  const body = $('#adminBody'); body.innerHTML = `<p class="muted">${t('loading')}</p>`;
+  try { S.logRows = await fetchRows('logs'); } catch (e) { body.innerHTML = `<p class="bad">${esc(errMsg(e))}</p>`; return; }
+  const cols = ['colDate', 'yourName', 'profession', 'level', 'scenario', 'mode', 'sessionCode', 'score', ...AXES.map(a => 'axis_' + a)];
+  body.innerHTML = `<div class="row"><button class="btn sm" data-act="exportLogs">${t('exportCsv')}</button><span class="muted small">${S.logRows.length}</span></div>
+    <div class="tablewrap"><table class="data"><thead><tr>${cols.map(k => `<th>${t(k)}</th>`).join('')}</tr></thead>
+    <tbody>${S.logRows.map(r => `<tr><td>${fmtDate(r.at)}</td><td>${esc(r.name)}</td><td>${esc(tx(PROFESSIONS[r.prof]))}</td><td>${esc(tx(LEVELS[r.level]))}</td><td>${esc(r.scenarioTitle || r.scenarioId)}</td><td>${t(r.mode === 'team' ? 'modeTeam' : 'modeIndividual')}</td><td>${esc(r.sessionCode || '—')}</td><td class="num-s">${r.score}</td>${AXES.map(a => `<td class="num-s">${r.axes?.[a] ?? ''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+async function adminAudit() {
+  const body = $('#adminBody'); body.innerHTML = `<p class="muted">${t('loading')}</p>`;
+  try { S.auditRows = await fetchRows('auditLogs'); } catch (e) { body.innerHTML = `<p class="bad">${esc(errMsg(e))}</p>`; return; }
+  body.innerHTML = `<div class="row"><button class="btn sm" data-act="exportAudit">${t('exportCsv')}</button><span class="muted small">${S.auditRows.length}</span></div>
+    <div class="tablewrap"><table class="data"><thead><tr><th>${t('colDate')}</th><th>${t('colAction')}</th><th>${t('email')}</th><th>UID</th><th>${t('colDetail')}</th></tr></thead>
+    <tbody>${S.auditRows.map(r => `<tr><td>${fmtDate(r.at)}</td><td>${esc(T['act_' + r.action] ? t('act_' + r.action) : r.action)}</td><td>${esc(r.email)}</td><td class="small">${esc(r.uid)}</td><td class="small">${esc([r.scenarioId, r.url].filter(Boolean).join(' '))}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function downloadCSV(name, rows) {
+  const csv = '\uFEFF' + rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+const iso = (ts) => (ts?.toDate ? ts.toDate().toISOString() : '');
+
+/* ---------- 操作の受け付け ---------- */
+const ACT = {
+  home: () => { if (S.view === 'lobby') leaveSession(); go('home'); },
+  login: () => guard(loginGoogle),
+  logout: () => guard(async () => { await leaveSession(); await S.fb.A.signOut(S.fb.auth); S.isAdmin = false; go('home'); }),
+  admin: () => go('admin'),
+  soloSetup: () => { leaveLocal(); go('solo'); },
+  soloStart,
+  createSession: () => guard(createSession),
+  joinSession: () => guard(() => joinSession($('#joinCode')?.value)),
+  copyLink: () => navigator.clipboard?.writeText(joinLink(S.session.code)).then(() => toast(t('copied'), 'good')),
+  hostStart: () => guard(async () => { const { F, db } = S.fb; await F.updateDoc(F.doc(db, 'sessions', S.session.code), { status: 'playing', startedAt: F.serverTimestamp() }); }),
+  leave: () => guard(async () => { await leaveSession(); go('home'); }),
+  endSession: () => guard(async () => { const { F, db } = S.fb; await F.updateDoc(F.doc(db, 'sessions', S.session.code), { status: 'finished', endedAt: F.serverTimestamp() }); }),
+  exitResult: () => { leaveLocal(); S.game = null; go('home'); },
+  quitGame: () => { if (!confirm(t('confirmDelete'))) return; S.game?.stop(); S.game = null; closeModal(); leaveLocal(); go('home'); },
+  doTask: ({ id }) => { const g = S.game; const x = g?.find(id); if (x && g.requestStart(x) === 'check') openCheck(x); },
+  resumeTask: ({ id }) => { const g = S.game; const x = g?.find(id); if (x && g.requestStart(x) === 'check') openCheck(x); },
+  delegateTask: ({ id }) => { const g = S.game; const x = g?.find(id); if (x) g.delegate(x); },
+  memo: () => S.game?.memo(),
+  checkAns: ({ id, ok }) => { closeModal(); const g = S.game; const x = g?.find(id); if (x) g.answerCheck(x, ok === '1'); },
+  adminSignIn: () => guard(adminSignIn),
+  adminTab: ({ tab }) => { S.adminTab = tab; renderAdmin(); },
+  newScenario: () => {
+    S.editId = null;
+    S.draft = { _new: true, id: '', prof: S.profile.prof, limit: 150, title: {}, intro: {},
+      tasks: [{ id: 'a1', t: { ja: '', en: '', ko: '', zh: '' }, p: 2, dur: 10, dl: 40, at: 0, del: false, chk: null, lv: 0 }] };
+    adminScenarios();
+  },
+  editScenario: ({ id }) => { S.draft = null; S.editId = id; adminScenarios(); },
+  saveScenario: () => guard(saveScenario),
+  deleteScenario: ({ id }) => guard(() => deleteScenario(id)),
+  saveVideo: ({ id }) => {
+    const url = (document.getElementById('v-' + id)?.value || '').trim();
+    if (!/^https:\/\/\S+$/i.test(url)) return toast(t('badUrl'), 'bad');
+    guard(() => saveVideoUrl(id, url));
+  },
+  removeVideo: ({ id }) => { if (confirm(t('confirmDelete'))) guard(() => saveVideoUrl(id, '', 'video_removed')); },
+  changePw: () => guard(changePw),
+  exportLogs: () => downloadCSV('play-logs.csv', [
+    ['date', 'uid', 'name', 'profession', 'level', 'scenarioId', 'scenario', 'mode', 'session', 'score', ...AXES, 'badPriority', 'noMemo', 'badDelegate', 'checkWrong', 'expired', 'done', 'delegated', 'durationSec', 'lang'],
+    ...S.logRows.map(r => [iso(r.at), r.uid, r.name, r.prof, r.level, r.scenarioId, r.scenarioTitle, r.mode, r.sessionCode || '', r.score,
+      ...AXES.map(a => r.axes?.[a]), ...['badPriority', 'noMemo', 'badDelegate', 'checkWrong', 'expired', 'done', 'delegated'].map(k => r.stats?.[k]), r.duration, r.lang]),
+  ]),
+  exportAudit: () => downloadCSV('audit-log.csv', [
+    ['date', 'action', 'email', 'uid', 'scenarioId', 'url', 'userAgent'],
+    ...S.auditRows.map(r => [iso(r.at), r.action, r.email, r.uid, r.scenarioId || '', r.url || '', r.userAgent || '']),
+  ]),
+};
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const f = ACT[el.dataset.act]; if (!f) return;
+  e.preventDefault();
+  f(el.dataset, el);
+});
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (el.id === 'langSel') setLang(el.value);
+  else if (['pName', 'pProf', 'pLevel'].includes(el.id)) saveProfile();
+  else if (el.id === 'soloSc') { S.soloScenario = el.value; renderSolo(); }
+  else if (el.name === 'soloMode') { S.soloMode = el.value; renderSolo(); }
+  else if (el.name === 'sesMode') guard(async () => { const { F, db } = S.fb; await F.updateDoc(F.doc(db, 'sessions', S.session.code), { mode: el.value }); });
+  else if (el.name === 'myTeam') guard(async () => { const { F, db } = S.fb; await F.updateDoc(F.doc(db, 'sessions', S.session.code, 'players', S.user.uid), { team: el.value }); });
+  else if (el.id === 'sound') { S.sound = el.checked; store.set('sound', S.sound); }
+  else if (el.dataset.upload) guard(() => uploadVideo(el.dataset.upload, el.files[0]));
+});
+document.addEventListener('input', (e) => { if (e.target.id === 'pName') saveProfile(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'joinCode') { e.preventDefault(); ACT.joinSession(); }
+  if (e.key === 'Enter' && (e.target.id === 'adPw' || e.target.id === 'adEmail')) { e.preventDefault(); ACT.adminSignIn(); }
+});
+document.addEventListener('toggle', (e) => {
+  const d = e.target;
+  if (d.matches?.('details[data-preview]') && d.open) d.querySelector('.pv').innerHTML = videoEmbed(S.meta[d.dataset.preview]?.videoUrl);
+}, true);
+window.addEventListener('hashchange', () => { if (location.hash === '#admin' && S.view !== 'game') go('admin'); });
+
+/* ---------- 起動 ---------- */
+(async function main() {
+  document.documentElement.lang = S.lang;
+  document.title = t('appTitle');
+  loadBuiltins();
+  S.pendingCode = (new URLSearchParams(location.search).get('s') || '').toUpperCase().slice(0, 6);
+  if (location.hash === '#admin') S.view = 'admin';
+  renderHeader(); rerender();
+  await initFirebase();
+  if (S.fb) { await loadRemote(); watchAuth(); }
+  renderHeader();
+  if (S.view !== 'game') rerender();
+})();
+
 </script>
-<script type="module" src="js/app.js"></script>
 </body>
 </html>
